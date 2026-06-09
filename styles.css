@@ -58,7 +58,8 @@ button { cursor: pointer; }
 .sidebar-card .eyebrow { color: #7f91aa; }
 .sidebar-card strong { color: white; font-size: 14px; }
 .sidebar-card span:last-child { color: #91a0b4; font-size: 11px; }
-.sidebar-footer { margin: auto 8px 0; display: flex; align-items: center; gap: 8px; color: #8190a5; font-size: 11px; }
+.sidebar-credit { margin: auto 8px 12px; color: #ffffff; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.sidebar-footer { margin: 0 8px; display: flex; align-items: center; gap: 8px; color: #8190a5; font-size: 11px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #3fce91; box-shadow: 0 0 0 4px rgba(63,206,145,.12); }
 
 .main { min-width: 0; padding: 0 34px 48px; }
@@ -356,7 +357,7 @@ h1 { font-size: 25px; }
   .sidebar { position: static; width: 100%; height: auto; padding: 14px 18px; flex-direction: row; align-items: center; }
   .brand { margin: 0 auto 0 0; }
   .brand-logo { width: 145px; }
-  .sidebar-card, .sidebar-footer { display: none; }
+  .sidebar-card, .sidebar-credit, .sidebar-footer { display: none; }
   .nav { display: flex; }
   .nav-item { width: auto; }
   .main { padding: 0 14px 30px; }

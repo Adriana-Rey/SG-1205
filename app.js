@@ -561,7 +561,7 @@
               : "";
       return `<div class="check-editor">
         <label for="check-${field}">${escapeHtml(label)}${audit ? `<small>Concluído por ${escapeHtml(audit.user)} em ${escapeHtml(formatAuditDate(audit.at))}</small>` : ""}</label>
-        <select id="check-${field}" data-check-field="${field}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) ? "" : "disabled"}>
+        <select id="check-${field}" data-check-field="${field}" data-previous-value="${escapeHtml(value)}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) ? "" : "disabled"}>
           ${hasValidStatus || hasNumericValue ? "" : '<option value="" selected disabled hidden>Selecione</option>'}
           ${options.map((option) => `<option value="${escapeHtml(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
@@ -648,6 +648,17 @@
     $(".photo-upload").style.opacity = !currentUser || currentPhotos.length >= 4 ? ".5" : "1";
   }
 
+  function hasCurrentTaskPhoto() {
+    return currentPhotos.length > 0 || photoTaskIds.has(state.currentId);
+  }
+
+  function updateCheckStatusClass(select) {
+    select.classList.toggle("status-na", keyText(select.value) === "n.a");
+    select.classList.toggle("status-conc", keyText(select.value) === "conc");
+    select.classList.toggle("status-pend", keyText(select.value) === "pend");
+    select.classList.toggle("status-canc", keyText(select.value) === "canc");
+  }
+
   function compressImage(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -707,6 +718,15 @@
     const original = tasks.find((task) => task.id === state.currentId);
     if (!original) return;
     const previous = mergedTask(original);
+    const hasNewCompletion = $$("[data-check-field]").some((select) => (
+      !numericControlFields.has(select.dataset.checkField)
+      && keyText(select.value) === "conc"
+      && keyText(previous[select.dataset.checkField]) !== "conc"
+    ));
+    if (hasNewCompletion && !hasCurrentTaskPhoto()) {
+      showToast("Adicione uma foto antes de concluir o item.");
+      return;
+    }
     const completionAudit = { ...(previous.completionAudit || {}) };
     const reportEntries = [];
     const update = {
@@ -875,10 +895,14 @@
     $("#dialogChecks").addEventListener("change", (event) => {
       const select = event.target.closest("[data-check-field]");
       if (select) {
-        select.classList.toggle("status-na", keyText(select.value) === "n.a");
-        select.classList.toggle("status-conc", keyText(select.value) === "conc");
-        select.classList.toggle("status-pend", keyText(select.value) === "pend");
-        select.classList.toggle("status-canc", keyText(select.value) === "canc");
+        if (keyText(select.value) === "conc" && !hasCurrentTaskPhoto()) {
+          select.value = select.dataset.previousValue || "PEND";
+          updateCheckStatusClass(select);
+          showToast("Adicione uma foto antes de selecionar CONC.");
+          return;
+        }
+        select.dataset.previousValue = select.value;
+        updateCheckStatusClass(select);
       }
     });
     document.addEventListener("click", (event) => {
