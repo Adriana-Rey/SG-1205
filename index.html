@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260609-83">
+  <link rel="stylesheet" href="styles.css?v=20260609-85">
 </head>
 <body>
   <div class="app-shell">
@@ -155,11 +155,14 @@
           <div>
             <p>Clique no numero para abrir a tarefa.</p>
           </div>
-          <div class="visual-legend">
-            <span><i class="visual-dot clear"></i>Concluido</span>
-            <span><i class="visual-dot canceled"></i>Cancelado</span>
-            <span><i class="visual-dot progress"></i>Andamento</span>
-            <span><i class="visual-dot pending"></i>Pendente</span>
+          <div class="visual-toolbar-actions">
+            <div class="visual-legend">
+              <span><i class="visual-dot clear"></i>Concluido</span>
+              <span><i class="visual-dot canceled"></i>Cancelado</span>
+              <span><i class="visual-dot progress"></i>Andamento</span>
+              <span><i class="visual-dot pending"></i>Pendente</span>
+            </div>
+            <button class="button button-secondary" type="button" id="printVisualButton">Imprimir</button>
           </div>
         </div>
         <div class="visual-layout">
@@ -328,7 +331,7 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260609-83"></script>
-  <script src="app.js?v=20260609-83"></script>
+  <script src="data.js?v=20260609-85"></script>
+  <script src="app.js?v=20260609-85"></script>
 </body>
 </html>

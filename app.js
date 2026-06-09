@@ -54,7 +54,7 @@
     { title: "PAV", x: 3.3, y: 42.5, items: ["13087", "13119", "13204", "13205", "13206"] },
     { title: "Queimadores", x: 3.3, y: 61.5, items: ["13082", "13125", "13142", "13192", "13193", "13196"] },
     { title: "PSV", x: 48.5, y: 4.5, items: ["13132", "13133", "13134", "13135", "13136", "13137", "13181", "13497"] },
-    { title: "Tubula\u00e7\u00e3o", items: ["13055", "13074", "13085", "13092", "13124", "13122", "13151", "13217", "13218", "13221", "13093", "13116", "13123"] },
+    { title: "Tubul\u00e3o Inferior/ Superior", items: ["13055", "13074", "13085", "13092", "13124", "13122", "13151", "13217", "13218", "13221", "13093", "13116", "13123"] },
     { title: "Superaquecedor", x: 67.5, y: 5, items: ["13055", "13062", "13075", "13076"] },
     { title: "Dessuperaquecedor", x: 67.5, y: 15, items: ["13056", "13097", "13061", "13094", "13095", "13127", "13220"] },
     { title: "Chamine", x: 87.5, y: 17, items: ["13084"] },
@@ -959,6 +959,7 @@
     $("#prevPage").addEventListener("click", () => { state.page--; renderTasks(); });
     $("#nextPage").addEventListener("click", () => { state.page++; renderTasks(); });
     $("#exportButton").addEventListener("click", exportCsv);
+    $("#printVisualButton").addEventListener("click", () => window.print());
     $("#loginButton").addEventListener("click", openLogin);
     $("#logoutButton").addEventListener("click", logout);
     $("#closeLogin").addEventListener("click", () => $("#loginDialog").close());

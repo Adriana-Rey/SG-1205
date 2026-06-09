@@ -346,6 +346,7 @@ h1 { font-size: 25px; }
 }
 .visual-toolbar h2 { font-size: 20px; }
 .visual-toolbar p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.visual-toolbar-actions { display: flex; align-items: center; gap: 14px; }
 .visual-legend { display: flex; flex-wrap: wrap; gap: 14px; color: #657185; font-size: 10px; font-weight: 700; }
 .visual-legend span { display: flex; align-items: center; gap: 6px; }
 .visual-dot { width: 9px; height: 9px; border-radius: 50%; }
@@ -378,10 +379,10 @@ h1 { font-size: 25px; }
   display: block; margin-bottom: 4px; overflow-wrap: anywhere; color: #253247; font-size: 7px;
   letter-spacing: .02em; line-height: 1.15; text-transform: uppercase;
 }
-.visual-group > div { display: flex; flex-wrap: wrap; gap: 2px; }
+.visual-group > div { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; }
 .visual-item {
-  min-height: 0; padding: 1px 3px; border: 1px solid #cdd4de; border-radius: 3px;
-  color: #536175; background: white; font-size: 7px; font-weight: 800; line-height: 1.05;
+  width: 100%; min-width: 0; min-height: 0; padding: 2px 1px; border: 1px solid #cdd4de; border-radius: 3px;
+  color: #536175; background: white; font-size: 7px; font-weight: 800; line-height: 1.05; text-align: center;
 }
 button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(20,35,55,.18); }
 .visual-item.clear { color: #075f39; border-color: #6fbe98; background: #ccebdc; }
@@ -454,4 +455,24 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   .compact-row > :nth-child(2) { display: none; }
   .area-summary-head, .area-summary-row { grid-template-columns: 1.4fr repeat(2, .7fr); }
   .area-summary-head > :nth-child(4), .area-summary-row > :nth-child(4) { display: none; }
+}
+
+@media print {
+  @page { size: landscape; margin: 8mm; }
+  body { background: white; }
+  .sidebar, .topbar, .visual-toolbar p, #printVisualButton, #dashboardView, #tasksView, #reportView,
+  .task-dialog, .login-dialog, .toast { display: none !important; }
+  .app-shell, .main { display: block; min-height: 0; padding: 0; }
+  #visualView { display: block !important; }
+  #visualView::before {
+    content: "Acompanhamento Visual"; display: block; margin-bottom: 6px;
+    color: #18212f; font-family: Manrope, sans-serif; font-size: 18px; font-weight: 800;
+  }
+  .visual-toolbar { margin-bottom: 6px; justify-content: flex-end; }
+  .visual-toolbar-actions { width: 100%; justify-content: flex-end; }
+  .visual-layout { gap: 6px; }
+  .visual-unmapped, .visual-identified { padding: 5px; break-inside: avoid; }
+  .visual-board { border-radius: 0; box-shadow: none; break-inside: avoid; }
+  .visual-group { padding: 3px; break-inside: avoid; }
+  .visual-group > strong, .visual-item { font-size: 6px; }
 }
