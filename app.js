@@ -302,8 +302,8 @@
     const completedChecks = metrics.reduce((sum, item) => sum + item.completed, 0);
     const canceledChecks = progressTasks.reduce((sum, task) =>
       sum + progressFields.filter(([field]) => keyText(task[field]) === "canc").length, 0);
-    const totalActive = pendingChecks + completedChecks + canceledChecks;
-    const progress = totalActive ? Math.round(((completedChecks + canceledChecks) / totalActive) * 100) : 0;
+    const totalActive = pendingChecks + completedChecks;
+    const progress = totalActive ? Math.round((completedChecks / totalActive) * 100) : 0;
     const pendingDegrees = totalActive ? (pendingChecks / totalActive) * 360 : 0;
     const completedDegrees = totalActive ? (completedChecks / totalActive) * 360 : 0;
     $("#totalTasks").textContent = current.length;
