@@ -354,11 +354,12 @@ h1 { font-size: 25px; }
 .visual-dot.progress { background: #347fc4; }
 .visual-dot.pending { background: #a7b0bd; }
 .visual-board {
-  position: relative; overflow: auto; border: 1px solid var(--line); border-radius: 14px;
+  position: relative; width: 100%; max-height: calc(100vh - 190px); overflow: auto;
+  border: 1px solid var(--line); border-radius: 14px;
   background: white; box-shadow: var(--shadow);
 }
-.visual-board > img { width: 100%; min-width: 1180px; height: auto; display: block; }
-.visual-markers { position: absolute; inset: 0; min-width: 1180px; pointer-events: none; }
+.visual-board > img { width: 100%; height: auto; display: block; }
+.visual-markers { position: absolute; inset: 0; pointer-events: none; }
 .visual-group {
   position: absolute; z-index: 2; width: max-content; max-width: 150px; padding: 5px 6px;
   border: 1px solid rgba(34, 50, 72, .14); border-radius: 7px; background: rgba(255, 255, 255, .88);
