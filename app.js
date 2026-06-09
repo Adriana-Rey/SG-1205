@@ -7,6 +7,7 @@
   const photoDbName = "cq-control-sg1205-photos-v2";
   const usersKey = "cq-control-sg1205-users-v1";
   const sessionKey = "cq-control-sg1205-session-v1";
+  const reportKey = "cq-control-sg1205-report-v1";
   const defaultUsers = ["Amilton", "Edilson", "Mineiro", "Elias", "Eron", "Maciel", "Brazil", "Amaro", "Anderson", "Adriana", "Johni"];
   const defaultPassword = "senha1234";
   const pageSize = 12;
@@ -24,6 +25,14 @@
     ["lv", "LV"], ["producao", "PRODUÇÃO"]
   ];
   const statusOptions = ["CONC", "PEND", "N.A", "CANC"];
+  const numericControlFields = new Set(["petp", "ieis", "planoTorque"]);
+  const progressFields = checkFields.filter(([field]) => !numericControlFields.has(field));
+  const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
+  const numericOptionsByField = Object.fromEntries([...numericControlFields].map((field) => [
+    field,
+    [...new Set(tasks.map((task) => String(task[field] ?? "").trim()).filter((value) => /^\d+(?:[.,]\d+)?$/.test(value)))]
+      .sort((a, b) => Number(a.replace(",", ".")) - Number(b.replace(",", ".")))
+  ]));
   const controlGroups = [
     {
       title: "Integridade",
@@ -43,7 +52,7 @@
   let currentUser = loadSession();
   let photoTaskIds = new Set();
   let currentPhotos = [];
-  let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", page: 1, currentId: null };
+  let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
 
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -66,6 +75,16 @@
     const username = sessionStorage.getItem(sessionKey);
     if (!username) return null;
     return loadUsers()[String(username).trim().toLocaleLowerCase("pt-BR")]?.username || null;
+  }
+
+  function loadReport() {
+    try { return JSON.parse(localStorage.getItem(reportKey)) || []; }
+    catch { return []; }
+  }
+
+  function appendReportEntries(entries) {
+    if (!entries.length) return;
+    localStorage.setItem(reportKey, JSON.stringify([...loadReport(), ...entries].slice(-5000)));
   }
 
   async function hashPassword(password) {
@@ -194,18 +213,32 @@
   function mergedTask(task) {
     const localEdit = { ...(edits[task.id] || {}) };
     delete localEdit.responsavel;
+    numericControlFields.forEach((field) => delete localEdit[field]);
     return { ...task, ...localEdit };
   }
 
   function taskMetrics(task) {
-    const values = checkFields.map(([field]) => task[field]);
+    const values = progressFields.map(([field]) => task[field]);
     const pending = values.filter(isPending).length;
     const completed = values.filter((value) => keyText(value) === "conc").length;
+    const canceled = values.filter((value) => keyText(value) === "canc").length;
     const applicable = values.filter(isApplicable).length;
-    return { pending, completed, applicable };
+    return { pending, completed, canceled, applicable };
   }
 
-  function taskStatus(metrics) {
+  function taskStatus(metrics, task) {
+    if (task && !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))) {
+      return { key: "other", label: "Outros" };
+    }
+    if (metrics.canceled > 0 && metrics.pending === 0 && metrics.completed === 0) {
+      return { key: "canceled", label: "Cancelada" };
+    }
+    if (metrics.canceled > 0 && metrics.pending > 0 && metrics.completed === 0) {
+      return { key: "pending", label: "Pendente" };
+    }
+    if (metrics.canceled > 0 && metrics.completed > 0 && metrics.pending === 0) {
+      return { key: "clear", label: "Concluído" };
+    }
     if (metrics.pending === 0) return { key: "clear", label: "Concluído" };
     if (metrics.pending < metrics.applicable) return { key: "progress", label: "Andamento" };
     return { key: "pending", label: "Pendente" };
@@ -220,7 +253,13 @@
     fillSelect($("#tagFilter"), unique("tag"));
     fillSelect($("#equipmentFilter"), unique("equipamento"));
     fillSelect($("#areaFilter"), unique("cq"));
-    fillSelect($("#ownerFilter"), unique("responsavel"));
+    const ownerOrder = new Map([["AMILTON", 0], ["EDILSON", 1], ["MINEIRO", 2]]);
+    const owners = unique("responsavel").sort((a, b) => {
+      const aOrder = ownerOrder.get(normalize(a).toLocaleUpperCase("pt-BR")) ?? 99;
+      const bOrder = ownerOrder.get(normalize(b).toLocaleUpperCase("pt-BR")) ?? 99;
+      return aOrder - bOrder || a.localeCompare(b, "pt-BR");
+    });
+    fillSelect($("#ownerFilter"), owners);
   }
 
   function fillSelect(select, values) {
@@ -242,18 +281,27 @@
         && (!state.equipment || normalize(task.equipamento) === state.equipment)
         && (!state.area || normalize(task.cq) === state.area)
         && (!state.owner || normalize(task.responsavel) === state.owner)
-        && (!state.status || taskStatus(metrics).key === state.status);
+        && (!state.status || taskStatus(metrics, task).key === state.status);
     });
   }
 
   function renderDashboard() {
     const current = tasks.map(mergedTask);
-    const metrics = current.map(taskMetrics);
-    const pendingTasks = metrics.filter((item) => item.pending > 0).length;
+    const progressTasks = current.filter((task) =>
+      primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
+    );
+    const metrics = progressTasks.map(taskMetrics);
+    const statuses = progressTasks.map((task, index) => taskStatus(metrics[index], task));
+    const pendingTasks = statuses.filter((item) => item.key === "pending").length;
+    const clearTasks = statuses.filter((item) => item.key === "clear").length;
+    const canceledTasks = statuses.filter((item) => item.key === "canceled").length;
+    const otherTasks = current.filter((task) =>
+      !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
+    ).length;
     const pendingChecks = metrics.reduce((sum, item) => sum + item.pending, 0);
     const completedChecks = metrics.reduce((sum, item) => sum + item.completed, 0);
-    const canceledChecks = current.reduce((sum, task) =>
-      sum + checkFields.filter(([field]) => keyText(task[field]) === "canc").length, 0);
+    const canceledChecks = progressTasks.reduce((sum, task) =>
+      sum + progressFields.filter(([field]) => keyText(task[field]) === "canc").length, 0);
     const totalActive = pendingChecks + completedChecks + canceledChecks;
     const progress = totalActive ? Math.round(((completedChecks + canceledChecks) / totalActive) * 100) : 0;
     const pendingDegrees = totalActive ? (pendingChecks / totalActive) * 360 : 0;
@@ -263,7 +311,9 @@
     $("#totalTags").textContent = `${unique("tag").length} TAGs mapeadas`;
     $("#pendingTasks").textContent = pendingTasks;
     $("#pendingRate").textContent = `${Math.round((pendingTasks / current.length) * 100)}% da base`;
-    $("#clearTasks").textContent = current.length - pendingTasks;
+    $("#clearTasks").textContent = clearTasks;
+    $("#canceledTasks").textContent = canceledTasks;
+    $("#otherTasks").textContent = otherTasks;
     $("#progressPercent").textContent = `${progress}%`;
     $("#progressPending").textContent = pendingChecks;
     $("#progressCompleted").textContent = completedChecks;
@@ -271,16 +321,15 @@
     $("#progressRing").style.setProperty("--pending-end", `${pendingDegrees}deg`);
     $("#progressRing").style.setProperty("--completed-end", `${pendingDegrees + completedDegrees}deg`);
 
-    renderCheckChart(current);
+    renderCheckChart(progressTasks);
     renderOwners(current);
-    renderPriority(current);
     renderEquipment(current);
     renderAreaSummary(current);
   }
 
   function renderCheckChart(current) {
-    const labels = Object.fromEntries(checkFields);
-    const counts = Object.fromEntries(checkFields.map(([field]) => [
+    const labels = Object.fromEntries(progressFields);
+    const counts = Object.fromEntries(progressFields.map(([field]) => [
       field,
       current.filter((task) => isPending(task[field])).length
     ]));
@@ -288,7 +337,7 @@
 
     const visibleGroups = controlGroups.map((group) => ({
       ...group,
-      fields: group.fields.filter((field) => counts[field] > 0)
+      fields: group.fields.filter((field) => !numericControlFields.has(field) && counts[field] > 0)
     })).filter((group) => group.fields.length);
 
     $("#checkChart").innerHTML = visibleGroups.map((group) => `
@@ -315,16 +364,20 @@
       const aOrder = ownerOrder.get(normalize(a[0]).toLocaleUpperCase("pt-BR")) ?? 99;
       const bOrder = ownerOrder.get(normalize(b[0]).toLocaleUpperCase("pt-BR")) ?? 99;
       return aOrder - bOrder || b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR");
-    }).slice(0, 6);
-    $("#ownerList").innerHTML = top.map(([owner, count]) => {
+    }).filter(([owner]) => normalize(owner).toLocaleUpperCase("pt-BR") !== "C&M");
+    const ownerRows = top.map(([owner, count]) => {
       const initials = normalize(owner).split(" ").map((part) => part[0]).join("").slice(0, 2) || "SR";
       const pending = current.filter((task) => normalize(task.responsavel) === owner && taskMetrics(task).pending).length;
-      return `<button class="owner-row owner-button" data-owner="${escapeHtml(owner)}">
+      const ownerKey = normalize(owner).toLocaleUpperCase("pt-BR");
+      return { primary: ownerOrder.has(ownerKey), html: `<button class="owner-row owner-button" data-owner="${escapeHtml(owner)}">
         <span class="avatar">${escapeHtml(initials)}</span>
         <div><strong>${escapeHtml(owner === "-" ? "Sem responsável" : owner)}</strong><span>${pending} com pendência</span></div>
         <strong>${count}</strong>
-      </button>`;
-    }).join("");
+      </button>` };
+    });
+    $("#ownerList").innerHTML = `
+      <div class="owner-column">${ownerRows.filter((item) => item.primary).map((item) => item.html).join("")}</div>
+      <div class="owner-column">${ownerRows.filter((item) => !item.primary).map((item) => item.html).join("")}</div>`;
   }
 
   function renderPriority(current) {
@@ -373,7 +426,7 @@
             <button class="compact-row row-button" data-open-id="${task.id}">
               <strong>${escapeHtml(task.equipamento)}</strong>
               <span>#${escapeHtml(task.item)}</span>
-              <span class="pill ${taskStatus(taskMetrics(task)).key}">${taskStatus(taskMetrics(task)).label}</span>
+              <span class="pill ${taskStatus(taskMetrics(task), task).key}">${taskStatus(taskMetrics(task), task).label}</span>
             </button>`).join("")}
         </div>
       </section>`).join("") : '<div class="priority-empty">Nenhuma pendência registrada.</div>';
@@ -429,7 +482,7 @@
     $("#emptyState").hidden = visible.length !== 0;
     $("#taskRows").innerHTML = visible.map((task) => {
       const metrics = taskMetrics(task);
-      const status = taskStatus(metrics);
+      const status = taskStatus(metrics, task);
       return `<article class="task-row">
         <div class="cell-primary"><strong>${escapeHtml(task.tag)}</strong><span>${escapeHtml(task.equipamento)}</span></div>
         <div class="cell-description"><strong>Item #${escapeHtml(task.item)}${photoTaskIds.has(task.id) ? '<span class="photo-badge">Foto</span>' : ""}</strong><span title="${escapeHtml(task.descricao)}">${escapeHtml(task.descricao)}</span></div>
@@ -445,6 +498,30 @@
       : "0 resultados";
     $("#prevPage").disabled = state.page <= 1;
     $("#nextPage").disabled = state.page >= totalPages;
+  }
+
+  function renderReport() {
+    const labels = Object.fromEntries(checkFields);
+    const taskById = new Map(tasks.map((task) => [task.id, task]));
+    const allEntries = loadReport();
+    const entries = allEntries
+      .filter((entry) => !state.reportDate || entry.at.slice(0, 10) === state.reportDate)
+      .sort((a, b) => new Date(b.at) - new Date(a.at));
+    $("#navReportCount").textContent = allEntries.length;
+    $("#reportRows").innerHTML = entries.map((entry) => {
+      const task = taskById.get(entry.taskId) || {};
+      const date = new Date(entry.at);
+      return `<article class="report-row">
+        <strong>#${escapeHtml(task.item || entry.item || "")}</strong>
+        <span>${escapeHtml(task.equipamento || entry.equipamento || "")}</span>
+        <span>${escapeHtml(labels[entry.field] || entry.field)}</span>
+        <span class="pill ${entry.status === "CANC" ? "canceled" : "clear"}">${escapeHtml(entry.status)}</span>
+        <span>${date.toLocaleDateString("pt-BR")}</span>
+        <span>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+        <strong>${escapeHtml(entry.user)}</strong>
+      </article>`;
+    }).join("");
+    $("#reportEmpty").hidden = entries.length !== 0;
   }
 
   async function openTask(id) {
@@ -467,6 +544,11 @@
     $("#dialogChecks").innerHTML = checkFields.map(([field, label]) => {
       const value = normalize(task[field]);
       const hasValidStatus = statusOptions.includes(value);
+      const hasNumericValue = numericControlFields.has(field) && /^\d+(?:[.,]\d+)?$/.test(value);
+      const options = [...new Set([
+        ...(numericOptionsByField[field] || []),
+        ...statusOptions
+      ])];
       const audit = completionAudit[field];
       const statusClass = keyText(value) === "n.a"
         ? "status-na"
@@ -479,9 +561,9 @@
               : "";
       return `<div class="check-editor">
         <label for="check-${field}">${escapeHtml(label)}${audit ? `<small>Concluído por ${escapeHtml(audit.user)} em ${escapeHtml(formatAuditDate(audit.at))}</small>` : ""}</label>
-        <select id="check-${field}" data-check-field="${field}" class="${statusClass}" ${currentUser ? "" : "disabled"}>
-          ${hasValidStatus ? "" : '<option value="" selected disabled hidden>Selecione</option>'}
-          ${statusOptions.map((option) => `<option value="${escapeHtml(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+        <select id="check-${field}" data-check-field="${field}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) ? "" : "disabled"}>
+          ${hasValidStatus || hasNumericValue ? "" : '<option value="" selected disabled hidden>Selecione</option>'}
+          ${options.map((option) => `<option value="${escapeHtml(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
       </div>`;
     }).join("");
@@ -626,22 +708,35 @@
     if (!original) return;
     const previous = mergedTask(original);
     const completionAudit = { ...(previous.completionAudit || {}) };
+    const reportEntries = [];
     const update = {
       observacao: $("#dialogObservation").value.trim(),
       completionAudit
     };
     $$("[data-check-field]").forEach((select) => {
       const field = select.dataset.checkField;
+      if (numericControlFields.has(field)) return;
       const nextValue = select.value;
       const previousValue = previous[field];
       update[field] = nextValue || previousValue;
       if (!nextValue) return;
       if (keyText(nextValue) === "conc" && keyText(previousValue) !== "conc") {
-        completionAudit[field] = { user: currentUser, at: new Date().toISOString() };
+        const at = new Date().toISOString();
+        completionAudit[field] = { user: currentUser, at };
+        reportEntries.push({
+          taskId: original.id, item: original.item, equipamento: original.equipamento,
+          field, status: "CONC", user: currentUser, at
+        });
+      } else if (keyText(nextValue) === "canc" && keyText(previousValue) !== "canc") {
+        reportEntries.push({
+          taskId: original.id, item: original.item, equipamento: original.equipamento,
+          field, status: "CANC", user: currentUser, at: new Date().toISOString()
+        });
       } else if (keyText(nextValue) !== "conc" && keyText(previousValue) === "conc") {
         delete completionAudit[field];
       }
     });
+    appendReportEntries(reportEntries);
     edits[state.currentId] = update;
     localStorage.setItem(storageKey, JSON.stringify(edits));
     $("#taskDialog").close();
@@ -722,9 +817,10 @@
     state.view = view;
     $$(".view").forEach((element) => element.classList.toggle("active", element.id === `${view}View`));
     $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-    $("#pageTitle").textContent = view === "dashboard" ? "Visão geral" : "Tarefas";
+    $("#pageTitle").textContent = view === "dashboard" ? "Visão geral" : view === "tasks" ? "Tarefas" : "Relatório";
     $("#pageEyebrow").textContent = "SG-1205";
     if (view === "tasks") renderTasks();
+    if (view === "report") renderReport();
   }
 
   function clearFilters() {
@@ -741,6 +837,7 @@
   function refresh() {
     renderDashboard();
     renderTasks();
+    renderReport();
   }
 
   function bindEvents() {
@@ -757,6 +854,10 @@
         state.page = 1;
         renderTasks();
       }));
+    $("#reportDateFilter").addEventListener("change", (event) => {
+      state.reportDate = event.target.value;
+      renderReport();
+    });
     $("#clearFilters").addEventListener("click", clearFilters);
     $("#prevPage").addEventListener("click", () => { state.page--; renderTasks(); });
     $("#nextPage").addEventListener("click", () => { state.page++; renderTasks(); });
@@ -836,6 +937,9 @@
     bindEvents();
     renderAuth();
     refresh();
+    setInterval(() => {
+      if (state.view === "dashboard") renderDashboard();
+    }, 2000);
   }
 
   init().catch(() => {
@@ -845,6 +949,9 @@
       bindEvents();
       renderAuth();
       refresh();
+      setInterval(() => {
+        if (state.view === "dashboard") renderDashboard();
+      }, 2000);
       showToast("O armazenamento de fotos não está disponível neste navegador.");
     });
   });

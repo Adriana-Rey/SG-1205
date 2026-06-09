@@ -25,6 +25,10 @@
           <span class="nav-icon">☷</span> Tarefas
           <span class="nav-count" id="navTaskCount">0</span>
         </button>
+        <button class="nav-item" data-view="report">
+          <span class="nav-icon">▤</span> Relatório
+          <span class="nav-count" id="navReportCount">0</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -77,18 +81,28 @@
         <div class="kpi-grid">
           <article class="kpi-card">
             <span class="kpi-icon blue">☷</span>
-            <div><span>Total de tarefas</span><strong id="totalTasks">0</strong></div>
+            <div><span>Total</span><strong id="totalTasks">0</strong></div>
             <small id="totalTags">0 TAGs mapeadas</small>
           </article>
           <article class="kpi-card">
-            <span class="kpi-icon amber">!</span>
-            <div><span>Com pendências</span><strong id="pendingTasks">0</strong></div>
+            <span class="kpi-icon red">!</span>
+            <div><span>Pendente</span><strong id="pendingTasks">0</strong></div>
             <small id="pendingRate">0% da base</small>
           </article>
           <article class="kpi-card">
             <span class="kpi-icon green">✓</span>
-            <div><span>Sem pendências</span><strong id="clearTasks">0</strong></div>
-            <small>Controles aplicáveis concluídos</small>
+            <div><span>Concluído</span><strong id="clearTasks">0</strong></div>
+            <small>Tarefas concluídas</small>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-icon amber">×</span>
+            <div><span>Cancelado</span><strong id="canceledTasks">0</strong></div>
+            <small>Tarefas canceladas</small>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-icon violet">+</span>
+            <div><span>Outros</span><strong id="otherTasks">0</strong></div>
+            <small>Demais responsáveis</small>
           </article>
         </div>
 
@@ -101,18 +115,11 @@
             <div id="checkChart" class="control-distribution"></div>
           </article>
 
-          <article class="panel">
+          <article class="panel span-3 owner-panel">
             <div class="panel-head">
               <div><h3>Responsável</h3></div>
             </div>
             <div id="ownerList" class="owner-list"></div>
-          </article>
-
-          <article class="panel span-2">
-            <div class="panel-head">
-              <div><h3>Prioridade por equipe</h3></div>
-            </div>
-            <div id="priorityTable" class="priority-groups"></div>
           </article>
 
           <article class="panel span-3">
@@ -152,6 +159,8 @@
                 <option value="pending">Pendente</option>
                 <option value="progress">Andamento</option>
                 <option value="clear">Concluído</option>
+                <option value="canceled">Cancelada</option>
+                <option value="other">Outros</option>
               </select>
             </label>
             <button class="button button-ghost" id="clearFilters">Limpar filtros</button>
@@ -179,6 +188,31 @@
               <button class="icon-button" id="prevPage" aria-label="Página anterior">←</button>
               <button class="icon-button" id="nextPage" aria-label="Próxima página">→</button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reportView" class="view">
+        <div class="report-toolbar">
+          <div>
+            <h2>Histórico de Avanço</h2>
+          </div>
+          <label class="select-wrap"><span>Data</span><input id="reportDateFilter" type="date"></label>
+        </div>
+        <div class="table-card">
+          <div class="report-table-head">
+            <span>Item</span>
+            <span>Equipamento</span>
+            <span>Modalidade</span>
+            <span>Atualização</span>
+            <span>Data</span>
+            <span>Hora</span>
+            <span>Responsável pelo avanço</span>
+          </div>
+          <div id="reportRows" class="report-table-body"></div>
+          <div id="reportEmpty" class="empty-state" hidden>
+            <strong>Nenhuma atualização registrada</strong>
+            <span>As alterações feitas após login aparecerão aqui.</span>
           </div>
         </div>
       </section>
@@ -263,7 +297,7 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260608-53"></script>
-  <script src="app.js?v=20260608-53"></script>
+  <script src="data.js?v=20260609-67"></script>
+  <script src="app.js?v=20260609-67"></script>
 </body>
 </html>
