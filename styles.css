@@ -458,21 +458,41 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
 }
 
 @media print {
-  @page { size: landscape; margin: 8mm; }
-  body { background: white; }
+  @page { size: A3 landscape; margin: 5mm; }
+  html, body { width: 410mm; height: 287mm; overflow: hidden; }
+  body { margin: 0; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .sidebar, .topbar, .visual-toolbar p, #printVisualButton, #dashboardView, #tasksView, #reportView,
   .task-dialog, .login-dialog, .toast { display: none !important; }
-  .app-shell, .main { display: block; min-height: 0; padding: 0; }
-  #visualView { display: block !important; }
-  #visualView::before {
-    content: "Acompanhamento Visual"; display: block; margin-bottom: 6px;
-    color: #18212f; font-family: Manrope, sans-serif; font-size: 18px; font-weight: 800;
+  .app-shell, .main { display: block; width: 100%; height: 100%; min-height: 0; padding: 0; }
+  #visualView {
+    display: grid !important; grid-template-rows: auto minmax(0, 1fr);
+    width: 100%; height: 100%; overflow: hidden; page-break-inside: avoid;
   }
-  .visual-toolbar { margin-bottom: 6px; justify-content: flex-end; }
-  .visual-toolbar-actions { width: 100%; justify-content: flex-end; }
-  .visual-layout { gap: 6px; }
-  .visual-unmapped, .visual-identified { padding: 5px; break-inside: avoid; }
-  .visual-board { border-radius: 0; box-shadow: none; break-inside: avoid; }
-  .visual-group { padding: 3px; break-inside: avoid; }
-  .visual-group > strong, .visual-item { font-size: 6px; }
+  #visualView::before {
+    content: "Acompanhamento Visual"; display: block; margin-bottom: 2mm;
+    color: #18212f; font-family: Manrope, sans-serif; font-size: 14pt; font-weight: 800;
+  }
+  .visual-toolbar { position: absolute; top: 0; right: 0; margin: 0; }
+  .visual-toolbar-actions { justify-content: flex-end; }
+  .visual-legend { gap: 3mm; font-size: 7pt; }
+  .visual-layout {
+    min-height: 0; gap: 1.5mm;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .visual-unmapped, .visual-identified {
+    padding: 1.5mm; overflow: hidden; border-radius: 2mm; break-inside: avoid;
+  }
+  .visual-unmapped h3, .visual-identified h3 { margin-bottom: 1mm; font-size: 7pt; }
+  .visual-card-grid { gap: 1mm; }
+  .visual-unmapped .visual-card-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .visual-identified .visual-card-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .visual-board {
+    min-height: 0; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; border-radius: 0; box-shadow: none; break-inside: avoid;
+  }
+  .visual-board > img { width: auto; max-width: 100%; height: 100%; max-height: 156mm; object-fit: contain; }
+  .visual-group { padding: .8mm; break-inside: avoid; }
+  .visual-group > strong { margin-bottom: .6mm; font-size: 5pt; }
+  .visual-group > div { gap: .4mm; }
+  .visual-item { padding: .4mm .2mm; font-size: 5pt; }
 }
