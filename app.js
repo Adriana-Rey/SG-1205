@@ -24,7 +24,7 @@
     ["isolamentoRefratario", "ISOL REFRAT"], ["registroFotografico", "REG FOT"],
     ["lv", "LV"], ["producao", "PRODUÇÃO"]
   ];
-  const statusOptions = ["CONC", "PEND", "N.A", "CANC"];
+  const statusOptions = ["CONC", "PEND", "AND", "N.A", "CANC"];
   const numericControlFields = new Set(["petp", "ieis", "planoTorque"]);
   const progressFields = checkFields.filter(([field]) => !numericControlFields.has(field));
   const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
@@ -46,6 +46,28 @@
       title: "Produção",
       fields: ["producao"]
     }
+  ];
+  const visualGroups = [
+    { title: "Duto de ar frio", x: 3.3, y: 16.5, items: ["13080"] },
+    { title: "Caixa de ar", x: 3.3, y: 25.5, items: ["13071", "13088"] },
+    { title: "Coletores laterais", x: 3.3, y: 34.5, items: ["13062"] },
+    { title: "PAV", x: 3.3, y: 42.5, items: ["13087", "13119", "13204", "13205", "13206"] },
+    { title: "Queimadores", x: 3.3, y: 61.5, items: ["13082", "13125", "13142", "13192", "13193", "13196"] },
+    { title: "PSV", x: 48.5, y: 4.5, items: ["13132", "13133", "13134", "13135", "13136", "13137", "13181", "13497"] },
+    { title: "Tubulacao superior", x: 55, y: 1.5, items: ["13055", "13074", "13085", "13092", "13124", "13122", "13151", "13217", "13218", "13221"] },
+    { title: "Superaquecedor", x: 67.5, y: 5, items: ["13055", "13062", "13075", "13076"] },
+    { title: "Dessuperaquecedor", x: 67.5, y: 15, items: ["13056", "13097", "13061", "13094", "13095", "13127", "13220"] },
+    { title: "Chamine", x: 87.5, y: 17, items: ["13084"] },
+    { title: "Supply", x: 73, y: 25, items: ["13077"] },
+    { title: "Bank", x: 73, y: 31, items: ["13055", "13057", "13058", "13120", "13128"] },
+    { title: "PAG", x: 73, y: 42, items: ["13118", "13186", "13121", "13176", "13182"] },
+    { title: "Buck-Stay", x: 73, y: 56, items: ["13073", "13079", "13091"] },
+    { title: "Fornalha", x: 42.5, y: 43, items: ["13055", "13059", "13060", "13062", "13063", "13064", "13065", "13066", "13067", "13069", "13143", "13144", "13126", "13207", "13219", "13223"] },
+    { title: "Duto de gas quente", x: 86.5, y: 65, items: ["13089", "13090", "13081", "13096"] },
+    { title: "Duto de gas frio", x: 87.5, y: 80, items: ["13081"] },
+    { title: "Tubulacao inferior", x: 53, y: 84, items: ["13055", "13074", "13093", "13116", "13123"] },
+    { title: "Coletor inferior", x: 63.5, y: 86.5, items: ["13070"] },
+    { title: "Duto de ar quente", x: 16, y: 86, items: ["13080"] }
   ];
 
   let edits = loadEdits();
@@ -221,15 +243,17 @@
     const values = progressFields.map(([field]) => task[field]);
     const pending = values.filter(isPending).length;
     const completed = values.filter((value) => keyText(value) === "conc").length;
+    const inProgress = values.filter((value) => keyText(value) === "and").length;
     const canceled = values.filter((value) => keyText(value) === "canc").length;
     const applicable = values.filter(isApplicable).length;
-    return { pending, completed, canceled, applicable };
+    return { pending, completed, inProgress, canceled, applicable };
   }
 
   function taskStatus(metrics, task) {
     if (task && !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))) {
       return { key: "other", label: "Outros" };
     }
+    if (metrics.inProgress > 0) return { key: "progress", label: "Andamento" };
     if (metrics.canceled > 0 && metrics.pending === 0 && metrics.completed === 0) {
       return { key: "canceled", label: "Cancelada" };
     }
@@ -325,6 +349,40 @@
     renderOwners(current);
     renderEquipment(current);
     renderAreaSummary(current);
+  }
+
+  function visualItemState(itemTasks) {
+    const states = itemTasks.map((task) => taskStatus(taskMetrics(task), task).key);
+    if (states.includes("progress")) return "progress";
+    if (states.includes("pending")) return "pending";
+    if (states.includes("clear")) return "clear";
+    if (states.includes("canceled")) return "canceled";
+    return "pending";
+  }
+
+  function renderVisualMarkers() {
+    const current = tasks.map(mergedTask);
+    const byItem = current.reduce((groups, task) => {
+      const item = normalize(task.item);
+      if (!groups[item]) groups[item] = [];
+      groups[item].push(task);
+      return groups;
+    }, {});
+    $("#visualMarkers").innerHTML = visualGroups.map((group) => `
+      <section class="visual-group" style="left:${group.x}%;top:${group.y}%">
+        <strong>${escapeHtml(group.title)}</strong>
+        <div>
+          ${group.items.map((item) => {
+            const itemTasks = byItem[item] || [];
+            const itemState = visualItemState(itemTasks);
+            const task = itemTasks[0];
+            return task
+              ? `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(`${item} - ${task.descricao}`)}">${item}</button>`
+              : `<span class="visual-item unavailable">${item}</span>`;
+          }).join("")}
+        </div>
+      </section>
+    `).join("");
   }
 
   function renderCheckChart(current) {
@@ -558,7 +616,9 @@
             ? "status-pend"
             : keyText(value) === "canc"
               ? "status-canc"
-              : "";
+              : keyText(value) === "and"
+                ? "status-and"
+                : "";
       return `<div class="check-editor">
         <label for="check-${field}">${escapeHtml(label)}${audit ? `<small>Concluído por ${escapeHtml(audit.user)} em ${escapeHtml(formatAuditDate(audit.at))}</small>` : ""}</label>
         <select id="check-${field}" data-check-field="${field}" data-previous-value="${escapeHtml(value)}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) ? "" : "disabled"}>
@@ -657,6 +717,7 @@
     select.classList.toggle("status-conc", keyText(select.value) === "conc");
     select.classList.toggle("status-pend", keyText(select.value) === "pend");
     select.classList.toggle("status-canc", keyText(select.value) === "canc");
+    select.classList.toggle("status-and", keyText(select.value) === "and");
   }
 
   function compressImage(file) {
@@ -839,8 +900,10 @@
     $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
     $("#pageTitle").textContent = view === "dashboard" ? "Visão geral" : view === "tasks" ? "Tarefas" : "Relatório";
     $("#pageEyebrow").textContent = "SG-1205";
+    if (view === "visual") $("#pageTitle").textContent = "Acompanhamento Visual";
     if (view === "tasks") renderTasks();
     if (view === "report") renderReport();
+    if (view === "visual") renderVisualMarkers();
   }
 
   function clearFilters() {
@@ -858,6 +921,7 @@
     renderDashboard();
     renderTasks();
     renderReport();
+    renderVisualMarkers();
   }
 
   function bindEvents() {
@@ -963,6 +1027,7 @@
     refresh();
     setInterval(() => {
       if (state.view === "dashboard") renderDashboard();
+      if (state.view === "visual") renderVisualMarkers();
     }, 2000);
   }
 
@@ -975,6 +1040,7 @@
       refresh();
       setInterval(() => {
         if (state.view === "dashboard") renderDashboard();
+        if (state.view === "visual") renderVisualMarkers();
       }, 2000);
       showToast("O armazenamento de fotos não está disponível neste navegador.");
     });
