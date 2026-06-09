@@ -368,7 +368,7 @@
       return groups;
     }, {});
     const renderGroup = (group) => `
-      <section class="visual-group">
+      <section class="visual-group${group.items.length === 1 ? " single-item" : ""}">
         <strong>${escapeHtml(group.title)}</strong>
         <div>
           ${group.items.map((item) => {
