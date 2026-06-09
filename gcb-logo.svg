@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 536 162" role="img" aria-labelledby="title">
+  <title id="title">GCB Manutenção Industrial</title>
+  <defs>
+    <linearGradient id="symbol" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a463b"/>
+      <stop offset="1" stop-color="#197561"/>
+    </linearGradient>
+  </defs>
+  <rect width="536" height="162" rx="4" fill="#eef2ef"/>
+  <path fill="url(#symbol)" d="M2 2h122C93 20 61 38 34 59c-15 12-15 28-1 40 25 21 58 36 91 52H2z"/>
+  <path fill="#f4f7f5" d="M28 65c27-22 61-40 97-58v106c-27 8-57 4-82-8-31-14-39-26-15-40z"/>
+  <path fill="url(#symbol)" d="M65 105c17 8 38 11 60 5V54c-18 17-39 33-60 51z"/>
+  <path fill="none" stroke="#093d34" stroke-width="7" d="M3 3v153h126"/>
+  <text x="198" y="102" fill="#075044" font-family="Arial Black, Arial, sans-serif" font-size="83" font-weight="900" letter-spacing="-7">GCB</text>
+  <text x="205" y="139" fill="#174f45" font-family="Arial, sans-serif" font-size="27" font-style="italic" font-weight="700">Manutenção Industrial</text>
+</svg>
