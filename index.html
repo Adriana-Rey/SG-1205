@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Painel de controle de qualidade e acompanhamento de tarefas SG-1205">
+  <title>CQ Control | SG-1205</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="GCB Manutenção Industrial">
+        <img class="brand-logo" src="assets/gcb-logo.svg" alt="GCB Manutenção Industrial">
+      </a>
+
+      <nav class="nav" aria-label="Navegação principal">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">⌂</span> Visão geral
+        </button>
+        <button class="nav-item" data-view="tasks">
+          <span class="nav-icon">☷</span> Tarefas
+          <span class="nav-count" id="navTaskCount">0</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <span>Dados disponíveis offline</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">SG-1205</p>
+          <h1 id="pageTitle">Visão geral</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="user-session">
+            <button class="button button-secondary" id="loginButton">Entrar</button>
+            <button class="button button-ghost" id="logoutButton" hidden>Sair</button>
+          </div>
+          <label class="global-search">
+            <span>⌕</span>
+            <input id="globalSearch" type="search" placeholder="Buscar TAG, item ou descrição">
+            <kbd>Ctrl K</kbd>
+          </label>
+          <button class="button button-secondary" id="exportButton">Exportar CSV</button>
+        </div>
+      </header>
+
+      <section id="dashboardView" class="view active">
+        <div class="hero">
+          <div>
+            <span class="hero-pill">Parada SG-1205</span>
+            <h2>Resumo Geral - Avanço</h2>
+          </div>
+          <div class="hero-progress">
+            <div class="progress-ring" id="progressRing">
+              <span id="progressPercent">0%</span>
+            </div>
+            <div>
+              <strong>Avanço dos controles</strong>
+              <div class="progress-legend">
+                <span class="progress-stat pending"><i></i>PEND <b id="progressPending">0</b></span>
+                <span class="progress-stat completed"><i></i>CONC <b id="progressCompleted">0</b></span>
+                <span class="progress-stat canceled"><i></i>CANC <b id="progressCanceled">0</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <article class="kpi-card">
+            <span class="kpi-icon blue">☷</span>
+            <div><span>Total de tarefas</span><strong id="totalTasks">0</strong></div>
+            <small id="totalTags">0 TAGs mapeadas</small>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-icon amber">!</span>
+            <div><span>Com pendências</span><strong id="pendingTasks">0</strong></div>
+            <small id="pendingRate">0% da base</small>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-icon green">✓</span>
+            <div><span>Sem pendências</span><strong id="clearTasks">0</strong></div>
+            <small>Controles aplicáveis concluídos</small>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel span-3">
+            <div class="panel-head">
+              <div><h3>Pendências por Modalidade</h3></div>
+              <button class="text-button" data-go-tasks="pending">Ver tarefas →</button>
+            </div>
+            <div id="checkChart" class="control-distribution"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div><h3>Responsável</h3></div>
+            </div>
+            <div id="ownerList" class="owner-list"></div>
+          </article>
+
+          <article class="panel span-2">
+            <div class="panel-head">
+              <div><h3>Prioridade por equipe</h3></div>
+            </div>
+            <div id="priorityTable" class="priority-groups"></div>
+          </article>
+
+          <article class="panel span-3">
+            <div class="panel-head">
+              <div><h3>Equipamentos</h3></div>
+            </div>
+            <div id="equipmentList" class="equipment-list"></div>
+          </article>
+
+          <article class="panel span-3">
+            <div class="panel-head">
+              <div><h3>Setores</h3></div>
+              <button class="text-button" data-view-tasks>Ver todas as tarefas →</button>
+            </div>
+            <div class="area-summary-head">
+              <span>Área</span>
+              <span>Tarefas</span>
+              <span>Com pendência</span>
+              <span>Controles pendentes</span>
+              <span></span>
+            </div>
+            <div id="areaSummary" class="area-summary"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="tasksView" class="view">
+        <div class="task-toolbar">
+          <div class="filter-row">
+            <label class="select-wrap"><span>TAG</span><select id="tagFilter"><option value="">Todas</option></select></label>
+            <label class="select-wrap"><span>Equipamento</span><select id="equipmentFilter"><option value="">Todos</option></select></label>
+            <label class="select-wrap"><span>Área</span><select id="areaFilter"><option value="">Todas</option></select></label>
+            <label class="select-wrap"><span>Responsável</span><select id="ownerFilter"><option value="">Todos</option></select></label>
+            <label class="select-wrap"><span>Situação</span>
+              <select id="statusFilter">
+                <option value="">Todas</option>
+                <option value="pending">Pendente</option>
+                <option value="progress">Andamento</option>
+                <option value="clear">Concluído</option>
+              </select>
+            </label>
+            <button class="button button-ghost" id="clearFilters">Limpar filtros</button>
+          </div>
+          <div class="result-summary"><strong id="resultCount">0</strong> tarefas encontradas</div>
+        </div>
+
+        <div class="table-card">
+          <div class="data-table-head">
+            <span>TAG / Equipamento</span>
+            <span>Item e descrição</span>
+            <span>Responsável</span>
+            <span>Controles</span>
+            <span>Situação</span>
+            <span></span>
+          </div>
+          <div id="taskRows" class="data-table-body"></div>
+          <div id="emptyState" class="empty-state" hidden>
+            <strong>Nenhuma tarefa encontrada</strong>
+            <span>Ajuste os filtros ou o termo de busca.</span>
+          </div>
+          <div class="pagination">
+            <span id="pageInfo"></span>
+            <div>
+              <button class="icon-button" id="prevPage" aria-label="Página anterior">←</button>
+              <button class="icon-button" id="nextPage" aria-label="Próxima página">→</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="taskDialog" class="task-dialog">
+    <form method="dialog" class="dialog-shell">
+      <header class="dialog-head">
+        <div><span class="eyebrow" id="dialogTag"></span><h2 id="dialogTitle"></h2></div>
+        <button class="dialog-close" value="cancel" aria-label="Fechar">×</button>
+      </header>
+      <div class="dialog-body">
+        <div class="detail-grid">
+          <div><span>Equipamento</span><strong id="dialogEquipment"></strong></div>
+          <div><span>Documento</span><strong id="dialogDocument"></strong></div>
+          <div><span>Responsável</span><input id="dialogOwner" type="text" readonly></div>
+        </div>
+        <div class="description-block"><span>Descrição da tarefa</span><p id="dialogDescription"></p></div>
+        <label class="observation-block" for="dialogObservation">
+          <span>Observação da atividade</span>
+          <textarea id="dialogObservation" rows="3" maxlength="1000" placeholder="Registre ocorrências, detalhes da execução ou informações importantes..."></textarea>
+          <small><strong id="observationCount">0</strong>/1000 caracteres</small>
+        </label>
+        <section class="photo-section">
+          <div class="checks-head">
+            <div><span class="eyebrow">Evidências</span><h3>Fotos da tarefa</h3></div>
+            <span>Até 4 imagens por tarefa</span>
+          </div>
+          <label class="photo-upload" for="taskPhotos">
+            <span class="photo-upload-icon">+</span>
+            <strong>Adicionar foto</strong>
+            <small>JPG, PNG ou WebP</small>
+          </label>
+          <input id="taskPhotos" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+          <div id="photoGallery" class="photo-gallery"></div>
+        </section>
+        <div class="checks-head"><div><span class="eyebrow">Checklist</span><h3>Controles de qualidade</h3></div><span id="editingIdentity">Entre para registrar alterações</span></div>
+        <div id="dialogChecks" class="checks-grid"></div>
+      </div>
+      <footer class="dialog-footer">
+        <button class="button button-ghost" type="button" id="resetTask">Restaurar original</button>
+        <button class="button button-primary" value="default" id="saveTask">Salvar alterações</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="loginDialog" class="login-dialog">
+    <form class="login-shell" id="loginForm">
+      <header class="dialog-head">
+        <div><span class="eyebrow">Identificação</span><h2>Acesso ao SG-1205</h2></div>
+        <button class="dialog-close" type="button" id="closeLogin" aria-label="Fechar">×</button>
+      </header>
+      <div class="login-body">
+        <p>Use seu usuário para que cada conclusão fique identificada.</p>
+        <label><span>Usuário</span><input id="loginUsername" type="text" maxlength="40" autocomplete="username" required></label>
+        <label><span>Senha</span><input id="loginPassword" type="password" minlength="4" autocomplete="current-password" required></label>
+        <div id="loginMessage" class="login-message"></div>
+      </div>
+      <footer class="login-footer">
+        <button class="button button-ghost" type="button" id="registerButton">Cadastrar usuário</button>
+        <button class="button button-primary" type="submit">Entrar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="changePasswordDialog" class="login-dialog">
+    <form class="login-shell" id="changePasswordForm">
+      <header class="dialog-head">
+        <div><span class="eyebrow">Primeiro acesso</span><h2>Alterar senha</h2></div>
+      </header>
+      <div class="login-body">
+        <p>Crie uma nova senha para continuar.</p>
+        <label><span>Nova senha</span><input id="newPassword" type="password" minlength="4" autocomplete="new-password" required></label>
+        <label><span>Confirmar nova senha</span><input id="confirmPassword" type="password" minlength="4" autocomplete="new-password" required></label>
+        <div id="changePasswordMessage" class="login-message"></div>
+      </div>
+      <footer class="login-footer password-footer">
+        <button class="button button-primary" type="submit">Salvar nova senha</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="data.js?v=20260608-53"></script>
+  <script src="app.js?v=20260608-53"></script>
+</body>
+</html>
