@@ -369,7 +369,9 @@ h1 { font-size: 25px; }
 }
 .visual-unmapped h3, .visual-identified h3 { margin-bottom: 7px; color: #344255; font-size: 11px; }
 .visual-card-grid { display: grid; gap: 5px; }
-.visual-unmapped .visual-card-grid,
+.visual-unmapped .visual-card-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); grid-auto-flow: column;
+}
 .visual-identified .visual-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .visual-group {
   min-width: 0; padding: 5px;
@@ -431,6 +433,7 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   .visual-unmapped, .visual-identified { max-height: none; }
   .visual-unmapped .visual-card-grid,
   .visual-identified .visual-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .visual-unmapped .visual-card-grid { grid-template-rows: none; grid-auto-flow: row; }
   .select-wrap { flex: 1 1 45%; }
   .select-wrap select { width: 100%; }
   .data-table-head { display: none; }
@@ -485,7 +488,9 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   }
   .visual-unmapped h3, .visual-identified h3 { margin-bottom: 1mm; font-size: 7pt; }
   .visual-card-grid { gap: 1mm; }
-  .visual-unmapped .visual-card-grid,
+  .visual-unmapped .visual-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, auto); grid-auto-flow: column;
+  }
   .visual-identified .visual-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .visual-board {
     min-height: 0; display: flex; align-items: center; justify-content: center;

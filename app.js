@@ -68,6 +68,12 @@
     { title: "Coletor inferior", x: 63.5, y: 86.5, items: ["13070"] },
     { title: "Duto de ar quente", x: 16, y: 86, items: ["13080"] }
   ];
+  const peripheralOrder = [
+    "B-1251", "D-1207", "D-1247",
+    "MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR",
+    "E-1202", "INSTRUMENTA\u00c7\u00c3O", "TUBULA\u00c7\u00c3O",
+    "SG-1205", "V\u00c1LVULA", "TB-1251"
+  ];
 
   let edits = loadEdits();
   let currentUser = loadSession();
@@ -367,9 +373,12 @@
       groups[item].push(task);
       return groups;
     }, {});
+    const visualTitle = (title) => normalize(title).toLocaleUpperCase("pt-BR") === "PERMUTADOR AMOSTRA"
+      ? "Permutador de Amostra"
+      : title;
     const renderGroup = (group) => `
       <section class="visual-group${group.items.length === 1 ? " single-item" : ""}">
-        <strong>${escapeHtml(group.title)}</strong>
+        <strong>${escapeHtml(visualTitle(group.title))}</strong>
         <div>
           ${group.items.map((item) => {
             const itemTasks = byItem[item] || [];
@@ -393,7 +402,11 @@
       return groups;
     }, {});
     $("#visualUnmapped").innerHTML = Object.entries(unmappedByEquipment)
-      .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
+      .sort(([a], [b]) => {
+        const aOrder = peripheralOrder.indexOf(normalize(a).toLocaleUpperCase("pt-BR"));
+        const bOrder = peripheralOrder.indexOf(normalize(b).toLocaleUpperCase("pt-BR"));
+        return (aOrder < 0 ? 99 : aOrder) - (bOrder < 0 ? 99 : bOrder) || a.localeCompare(b, "pt-BR");
+      })
       .map(([title, items]) => renderGroup({ title, items: [...items].sort((a, b) => Number(a) - Number(b)) }))
       .join("");
   }
