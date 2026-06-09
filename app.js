@@ -368,8 +368,8 @@
       groups[item].push(task);
       return groups;
     }, {});
-    $("#visualMarkers").innerHTML = visualGroups.map((group) => `
-      <section class="visual-group" style="left:${group.x}%;top:${group.y}%">
+    const renderGroup = (group) => `
+      <section class="visual-group">
         <strong>${escapeHtml(group.title)}</strong>
         <div>
           ${group.items.map((item) => {
@@ -382,7 +382,21 @@
           }).join("")}
         </div>
       </section>
-    `).join("");
+    `;
+    $("#visualMarkers").innerHTML = visualGroups.map(renderGroup).join("");
+
+    const identifiedItems = new Set(visualGroups.flatMap((group) => group.items));
+    const unmappedByEquipment = current.reduce((groups, task) => {
+      if (identifiedItems.has(normalize(task.item))) return groups;
+      const equipment = normalize(task.equipamento) || "Sem equipamento";
+      if (!groups[equipment]) groups[equipment] = new Set();
+      groups[equipment].add(normalize(task.item));
+      return groups;
+    }, {});
+    $("#visualUnmapped").innerHTML = Object.entries(unmappedByEquipment)
+      .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
+      .map(([title, items]) => renderGroup({ title, items: [...items].sort((a, b) => Number(a) - Number(b)) }))
+      .join("");
   }
 
   function renderCheckChart(current) {

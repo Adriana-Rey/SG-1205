@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260609-78">
+  <link rel="stylesheet" href="styles.css?v=20260609-79">
 </head>
 <body>
   <div class="app-shell">
@@ -163,10 +163,17 @@
             <span><i class="visual-dot pending"></i>Pendente</span>
           </div>
         </div>
+        <section class="visual-unmapped">
+          <h3>Equipamentos nao identificados na imagem</h3>
+          <div id="visualUnmapped" class="visual-card-grid"></div>
+        </section>
         <div class="visual-board">
-          <img src="assets/SG-1205_Itens.jpg" alt="Mapa visual dos itens da SG-1205">
-          <div id="visualMarkers" class="visual-markers"></div>
+          <img src="assets/SG-1205_Ultimo.jpg" alt="Mapa visual dos itens da SG-1205">
         </div>
+        <section class="visual-identified">
+          <h3>Itens identificados na imagem</h3>
+          <div id="visualMarkers" class="visual-card-grid"></div>
+        </section>
       </section>
 
       <section id="tasksView" class="view">
@@ -320,7 +327,7 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260609-78"></script>
-  <script src="app.js?v=20260609-78"></script>
+  <script src="data.js?v=20260609-79"></script>
+  <script src="app.js?v=20260609-79"></script>
 </body>
 </html>
