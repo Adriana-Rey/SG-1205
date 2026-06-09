@@ -69,10 +69,16 @@
     { title: "Duto de ar quente", x: 16, y: 86, items: ["13080"] }
   ];
   const peripheralOrder = [
-    "B-1251", "D-1207", "D-1247",
-    "MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR",
+    "B-1251", "D-1207", "D-1247", "TB-1251",
+    "MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR", "V\u00c1LVULA",
     "E-1202", "INSTRUMENTA\u00c7\u00c3O", "TUBULA\u00c7\u00c3O",
-    "SG-1205", "V\u00c1LVULA", "TB-1251"
+    "SG-1205"
+  ];
+  const boilerColumns = [
+    ["Duto de ar frio", "Caixa de ar", "Coletores laterais", "PAV", "Queimadores", "Duto de ar quente"],
+    ["PSV", "Superaquecedor", "Dessuperaquecedor", "Supply", "Bank"],
+    ["Chamine", "PAG", "Buck-Stay", "Duto de gas quente", "Duto de gas frio", "Coletor inferior"],
+    ["Tubul\u00e3o Inferior/ Superior", "Fornalha"]
   ];
 
   let edits = loadEdits();
@@ -366,7 +372,9 @@
   }
 
   function renderVisualMarkers() {
-    const current = tasks.map(mergedTask);
+    const current = tasks.map(mergedTask).filter((task) =>
+      primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
+    );
     const byItem = current.reduce((groups, task) => {
       const item = normalize(task.item);
       if (!groups[item]) groups[item] = [];
@@ -376,22 +384,30 @@
     const visualTitle = (title) => normalize(title).toLocaleUpperCase("pt-BR") === "PERMUTADOR AMOSTRA"
       ? "Permutador de Amostra"
       : title;
-    const renderGroup = (group) => `
-      <section class="visual-group${group.items.length === 1 ? " single-item" : ""}">
+    const groupPosition = (title, columns) => {
+      for (let column = 0; column < columns.length; column++) {
+        const row = columns[column].indexOf(title);
+        if (row >= 0) return ` style="grid-column:${column + 1};grid-row:${row + 1}"`;
+      }
+      return "";
+    };
+    const renderGroup = (group) => {
+      const visibleItems = group.items.filter((item) => (byItem[item] || []).length);
+      if (!visibleItems.length) return "";
+      return `
+      <section class="visual-group${visibleItems.length === 1 ? " single-item" : ""}"${groupPosition(group.title, group.columns || [])}>
         <strong>${escapeHtml(visualTitle(group.title))}</strong>
         <div>
-          ${group.items.map((item) => {
+          ${visibleItems.map((item) => {
             const itemTasks = byItem[item] || [];
             const itemState = visualItemState(itemTasks);
             const task = itemTasks[0];
-            return task
-              ? `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(`${item} - ${task.descricao}`)}">${item}</button>`
-              : `<span class="visual-item unavailable">${item}</span>`;
+            return `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(`${item} - ${task.descricao}`)}">${item}</button>`;
           }).join("")}
         </div>
       </section>
-    `;
-    $("#visualMarkers").innerHTML = visualGroups.map(renderGroup).join("");
+    `; };
+    $("#visualMarkers").innerHTML = visualGroups.map((group) => renderGroup({ ...group, columns: boilerColumns })).join("");
 
     const identifiedItems = new Set(visualGroups.flatMap((group) => group.items));
     const unmappedByEquipment = current.reduce((groups, task) => {
@@ -407,7 +423,16 @@
         const bOrder = peripheralOrder.indexOf(normalize(b).toLocaleUpperCase("pt-BR"));
         return (aOrder < 0 ? 99 : aOrder) - (bOrder < 0 ? 99 : bOrder) || a.localeCompare(b, "pt-BR");
       })
-      .map(([title, items]) => renderGroup({ title, items: [...items].sort((a, b) => Number(a) - Number(b)) }))
+      .map(([title, items]) => renderGroup({
+        title,
+        items: [...items].sort((a, b) => Number(a) - Number(b)),
+        columns: [
+          ["B-1251", "D-1207", "D-1247", "TB-1251"],
+          ["MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR", "V\u00c1LVULA"],
+          ["E-1202", "INSTRUMENTA\u00c7\u00c3O", "TUBULA\u00c7\u00c3O"],
+          ["SG-1205"]
+        ]
+      }))
       .join("");
   }
 
