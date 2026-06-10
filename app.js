@@ -384,18 +384,11 @@
     const visualTitle = (title) => normalize(title).toLocaleUpperCase("pt-BR") === "PERMUTADOR AMOSTRA"
       ? "Permutador de Amostra"
       : title;
-    const groupPosition = (title, columns) => {
-      for (let column = 0; column < columns.length; column++) {
-        const row = columns[column].indexOf(title);
-        if (row >= 0) return ` style="grid-column:${column + 1};grid-row:${row + 1}"`;
-      }
-      return "";
-    };
     const renderGroup = (group) => {
       const visibleItems = group.items.filter((item) => (byItem[item] || []).length);
       if (!visibleItems.length) return "";
       return `
-      <section class="visual-group${visibleItems.length === 1 ? " single-item" : ""}"${groupPosition(group.title, group.columns || [])}>
+      <section class="visual-group${visibleItems.length === 1 ? " single-item" : ""}">
         <strong>${escapeHtml(visualTitle(group.title))}</strong>
         <div>
           ${visibleItems.map((item) => {
@@ -407,7 +400,15 @@
         </div>
       </section>
     `; };
-    $("#visualMarkers").innerHTML = visualGroups.map((group) => renderGroup({ ...group, columns: boilerColumns })).join("");
+    const renderColumns = (columns, groups) => columns.map((titles) => `
+      <div class="visual-column">
+        ${titles.map((title) => {
+          const group = groups.find((item) => item.title === title);
+          return group ? renderGroup(group) : "";
+        }).join("")}
+      </div>
+    `).join("");
+    $("#visualMarkers").innerHTML = renderColumns(boilerColumns, visualGroups);
 
     const identifiedItems = new Set(visualGroups.flatMap((group) => group.items));
     const unmappedByEquipment = current.reduce((groups, task) => {
@@ -417,23 +418,16 @@
       groups[equipment].add(normalize(task.item));
       return groups;
     }, {});
-    $("#visualUnmapped").innerHTML = Object.entries(unmappedByEquipment)
-      .sort(([a], [b]) => {
-        const aOrder = peripheralOrder.indexOf(normalize(a).toLocaleUpperCase("pt-BR"));
-        const bOrder = peripheralOrder.indexOf(normalize(b).toLocaleUpperCase("pt-BR"));
-        return (aOrder < 0 ? 99 : aOrder) - (bOrder < 0 ? 99 : bOrder) || a.localeCompare(b, "pt-BR");
-      })
-      .map(([title, items]) => renderGroup({
-        title,
-        items: [...items].sort((a, b) => Number(a) - Number(b)),
-        columns: [
-          ["B-1251", "D-1207", "D-1247", "TB-1251"],
-          ["MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR", "V\u00c1LVULA"],
-          ["E-1202", "INSTRUMENTA\u00c7\u00c3O", "TUBULA\u00c7\u00c3O"],
-          ["SG-1205"]
-        ]
-      }))
-      .join("");
+    const peripheralHtmlByTitle = Object.fromEntries(Object.entries(unmappedByEquipment).map(([title, items]) => [
+      normalize(title).toLocaleUpperCase("pt-BR"),
+      renderGroup({ title, items: [...items].sort((a, b) => Number(a) - Number(b)) })
+    ]));
+    $("#visualUnmapped").innerHTML = [
+      ["B-1251", "D-1207", "D-1247", "TB-1251"],
+      ["MB-1251", "PERMUTADOR AMOSTRA", "RESFRIADOR", "V\u00c1LVULA"],
+      ["E-1202", "INSTRUMENTA\u00c7\u00c3O", "TUBULA\u00c7\u00c3O"],
+      ["SG-1205"]
+    ].map((titles) => `<div class="visual-column">${titles.map((title) => peripheralHtmlByTitle[title] || "").join("")}</div>`).join("");
   }
 
   function renderCheckChart(current) {
