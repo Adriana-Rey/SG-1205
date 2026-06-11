@@ -132,8 +132,8 @@
   async function registerUser() {
     const username = normalize($("#loginUsername").value);
     const password = $("#loginPassword").value;
-    if (username.length < 3 || password.length < 6 || password.length > 8) {
-      $("#loginMessage").textContent = "Informe usuário com 3 caracteres e senha entre 6 e 8 caracteres.";
+    if (username.length < 3 || password.length < 6 || password.length > 19) {
+      $("#loginMessage").textContent = "Informe usuário com 3 caracteres e senha entre 6 e 19 caracteres.";
       return;
     }
     if (!onlineMode) {
@@ -192,8 +192,8 @@
       $("#changePasswordMessage").textContent = "A nova senha deve ter pelo menos 6 caracteres.";
       return;
     }
-    if (password.length > 8) {
-      $("#changePasswordMessage").textContent = "A nova senha deve ter no máximo 8 caracteres.";
+    if (password.length > 19) {
+      $("#changePasswordMessage").textContent = "A nova senha deve ter no máximo 19 caracteres.";
       return;
     }
     if (password === defaultPassword) {

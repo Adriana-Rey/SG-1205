@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260611-96">
+  <link rel="stylesheet" href="styles.css?v=20260611-97">
 </head>
 <body>
   <div class="app-shell">
@@ -303,7 +303,7 @@
       <div class="login-body">
         <p>Use seu usuário para que cada conclusão fique identificada.</p>
         <label><span>Usuário</span><input id="loginUsername" type="text" maxlength="40" autocomplete="username" required></label>
-        <label><span>Senha</span><input id="loginPassword" type="password" minlength="6" maxlength="8" autocomplete="current-password" required></label>
+        <label><span>Senha</span><input id="loginPassword" type="password" minlength="6" maxlength="19" autocomplete="current-password" required></label>
         <div id="loginMessage" class="login-message"></div>
       </div>
       <footer class="login-footer">
@@ -320,8 +320,8 @@
       </header>
       <div class="login-body">
         <p>Crie uma nova senha para continuar.</p>
-        <label><span>Nova senha</span><input id="newPassword" type="password" minlength="6" maxlength="8" autocomplete="new-password" required></label>
-        <label><span>Confirmar nova senha</span><input id="confirmPassword" type="password" minlength="6" maxlength="8" autocomplete="new-password" required></label>
+        <label><span>Nova senha</span><input id="newPassword" type="password" minlength="6" maxlength="19" autocomplete="new-password" required></label>
+        <label><span>Confirmar nova senha</span><input id="confirmPassword" type="password" minlength="6" maxlength="19" autocomplete="new-password" required></label>
         <div id="changePasswordMessage" class="login-message"></div>
       </div>
       <footer class="login-footer password-footer">
@@ -331,9 +331,9 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260611-96"></script>
+  <script src="data.js?v=20260611-97"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js?v=20260611-96"></script>
-  <script src="app.js?v=20260611-96"></script>
+  <script src="supabaseClient.js?v=20260611-97"></script>
+  <script src="app.js?v=20260611-97"></script>
 </body>
 </html>
