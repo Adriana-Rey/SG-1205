@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const SUPABASE_URL = "https://nccqwutudmgrbnwvvxjy.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_cSy55MU4h2xbdTuntX919w_IUsZGXg1";
+  const SUPABASE_URL = "COLE_AQUI_A_URL_DO_SUPABASE";
+  const SUPABASE_ANON_KEY = "COLE_AQUI_A_ANON_KEY_DO_SUPABASE";
   const PHOTO_BUCKET = "fotos-sg1205";
   const configured = /^https:\/\/.+\.supabase\.co$/i.test(SUPABASE_URL)
     && !SUPABASE_ANON_KEY.startsWith("COLE_AQUI");

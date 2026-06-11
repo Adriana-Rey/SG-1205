@@ -1,0 +1,4 @@
+supabase-users-report.json
+.env
+.env.*
+!.env.example

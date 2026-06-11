@@ -75,6 +75,7 @@
   let edits = {};
   let reportEntriesCache = [];
   let currentUser = null;
+  let mustChangePassword = false;
   let onlineMode = false;
   let realtimeChannel = null;
   let realtimeTimer = null;
@@ -146,6 +147,7 @@
         return;
       }
       currentUser = result.username;
+      mustChangePassword = true;
       $("#loginDialog").close();
       $("#changePasswordDialog").showModal();
       renderAuth();
@@ -165,6 +167,7 @@
     try {
       const user = await supabaseApi.signIn(username, password);
       currentUser = user.username;
+      mustChangePassword = user.mustChangePassword;
       $("#loginDialog").close();
       if (user.mustChangePassword) {
         $("#changePasswordMessage").textContent = "";
@@ -199,6 +202,7 @@
     }
     try {
       await supabaseApi.changePassword(password);
+      mustChangePassword = false;
       $("#changePasswordDialog").close();
       renderAuth();
       showToast("Senha alterada. Acesso liberado.");
@@ -210,6 +214,7 @@
   async function logout() {
     if (onlineMode) await supabaseApi.signOut();
     currentUser = null;
+    mustChangePassword = false;
     renderAuth();
     showToast("Sessão encerrada.");
   }
@@ -951,6 +956,7 @@
     $("#loginForm").addEventListener("submit", login);
     $("#registerButton").addEventListener("click", registerUser);
     $("#changePasswordForm").addEventListener("submit", changePassword);
+    $("#changePasswordDialog").addEventListener("cancel", (event) => event.preventDefault());
     $("#saveTask").addEventListener("click", saveCurrentTask);
     $("#resetTask").addEventListener("click", resetCurrentTask);
     $("#taskPhotos").addEventListener("change", (event) => addPhotos(event.target.files));
@@ -1056,6 +1062,7 @@
       await syncRemoteState();
       const session = await supabaseApi.getCurrentUser();
       currentUser = session?.username || null;
+      mustChangePassword = Boolean(session?.mustChangePassword);
       realtimeChannel = supabaseApi.subscribe(scheduleRealtimeSync);
     } catch {
       onlineMode = false;
@@ -1078,6 +1085,13 @@
     renderAuth();
     updateConnectionLabel();
     refresh();
+    if (currentUser && mustChangePassword) {
+      $("#changePasswordMessage").textContent = "Altere a senha inicial para continuar.";
+      $("#newPassword").value = "";
+      $("#confirmPassword").value = "";
+      $("#changePasswordDialog").showModal();
+      $("#newPassword").focus();
+    }
     setInterval(() => {
       if (state.view === "dashboard") renderDashboard();
       if (state.view === "visual") renderVisualMarkers();
