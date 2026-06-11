@@ -1,14 +1,9 @@
 (() => {
   "use strict";
 
-  const tasks = window.SG1205_DATA || [];
-  const metadata = window.SG1205_META || {};
-  const storageKey = "cq-control-sg1205-edits-v2";
-  const photoDbName = "cq-control-sg1205-photos-v2";
-  const usersKey = "cq-control-sg1205-users-v1";
-  const sessionKey = "cq-control-sg1205-session-v1";
-  const reportKey = "cq-control-sg1205-report-v1";
-  const defaultUsers = ["Amilton", "Edilson", "Mineiro", "Elias", "Eron", "Maciel", "Brazil", "Amaro", "Anderson", "Adriana", "Johni"];
+  let tasks = window.SG1205_DATA || [];
+  let metadata = window.SG1205_META || {};
+  const supabaseApi = window.SG1205_SUPABASE || { configured: false };
   const defaultPassword = "senha1234";
   const pageSize = 12;
   const checkFields = [
@@ -28,11 +23,7 @@
   const numericControlFields = new Set(["petp", "ieis", "planoTorque"]);
   const progressFields = checkFields.filter(([field]) => !numericControlFields.has(field));
   const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
-  const numericOptionsByField = Object.fromEntries([...numericControlFields].map((field) => [
-    field,
-    [...new Set(tasks.map((task) => String(task[field] ?? "").trim()).filter((value) => /^\d+(?:[.,]\d+)?$/.test(value)))]
-      .sort((a, b) => Number(a.replace(",", ".")) - Number(b.replace(",", ".")))
-  ]));
+  let numericOptionsByField = {};
   const controlGroups = [
     {
       title: "Integridade",
@@ -81,8 +72,13 @@
     ["Tubul\u00e3o Inferior/ Superior", "Fornalha"]
   ];
 
-  let edits = loadEdits();
-  let currentUser = loadSession();
+  let edits = {};
+  let reportEntriesCache = [];
+  let currentUser = null;
+  let onlineMode = false;
+  let realtimeChannel = null;
+  let realtimeTimer = null;
+  let fallbackPhotos = [];
   let photoTaskIds = new Set();
   let currentPhotos = [];
   let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
@@ -94,55 +90,26 @@
   const isPending = (value) => keyText(value) === "pend";
   const isApplicable = (value) => value !== null && value !== "" && !["n.a", "-", "canc"].includes(keyText(value));
 
+  function rebuildNumericOptions() {
+    numericOptionsByField = Object.fromEntries([...numericControlFields].map((field) => [
+      field,
+      [...new Set(tasks.map((task) => String(task[field] ?? "").trim()).filter((value) => /^\d+(?:[.,]\d+)?$/.test(value)))]
+        .sort((a, b) => Number(a.replace(",", ".")) - Number(b.replace(",", ".")))
+    ]));
+  }
+
   function loadEdits() {
-    try { return JSON.parse(localStorage.getItem(storageKey)) || {}; }
-    catch { return {}; }
-  }
-
-  function loadUsers() {
-    try { return JSON.parse(localStorage.getItem(usersKey)) || {}; }
-    catch { return {}; }
-  }
-
-  function loadSession() {
-    const username = sessionStorage.getItem(sessionKey);
-    if (!username) return null;
-    return loadUsers()[String(username).trim().toLocaleLowerCase("pt-BR")]?.username || null;
+    return edits;
   }
 
   function loadReport() {
-    try { return JSON.parse(localStorage.getItem(reportKey)) || []; }
-    catch { return []; }
+    return reportEntriesCache;
   }
 
-  function appendReportEntries(entries) {
+  async function appendReportEntries(entries) {
     if (!entries.length) return;
-    localStorage.setItem(reportKey, JSON.stringify([...loadReport(), ...entries].slice(-5000)));
-  }
-
-  async function hashPassword(password) {
-    const bytes = new TextEncoder().encode(password);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  }
-
-  async function seedDefaultUsers() {
-    const users = loadUsers();
-    const passwordHash = await hashPassword(defaultPassword);
-    let changed = false;
-    defaultUsers.forEach((username) => {
-      const key = keyText(username);
-      if (!users[key]) {
-        users[key] = {
-          username,
-          passwordHash,
-          mustChangePassword: true,
-          createdAt: new Date().toISOString()
-        };
-        changed = true;
-      }
-    });
-    if (changed) localStorage.setItem(usersKey, JSON.stringify(users));
+    if (onlineMode) await supabaseApi.appendHistory(entries);
+    reportEntriesCache = [...reportEntriesCache, ...entries].slice(-5000);
   }
 
   function renderAuth() {
@@ -164,46 +131,53 @@
   async function registerUser() {
     const username = normalize($("#loginUsername").value);
     const password = $("#loginPassword").value;
-    if (username.length < 3 || password.length < 4) {
-      $("#loginMessage").textContent = "Informe usuário com 3 caracteres e senha com pelo menos 4.";
+    if (username.length < 3 || password.length < 6) {
+      $("#loginMessage").textContent = "Informe usuário com 3 caracteres e senha com pelo menos 6.";
       return;
     }
-    const users = loadUsers();
-    const key = keyText(username);
-    if (users[key]) {
-      $("#loginMessage").textContent = "Este usuário já está cadastrado.";
+    if (!onlineMode) {
+      $("#loginMessage").textContent = "Cadastros exigem conexão com o Supabase.";
       return;
     }
-    users[key] = { username, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
-    localStorage.setItem(usersKey, JSON.stringify(users));
-    currentUser = username;
-    sessionStorage.setItem(sessionKey, username);
-    $("#loginDialog").close();
-    renderAuth();
-    showToast(`Usuário ${username} cadastrado e conectado.`);
+    try {
+      const result = await supabaseApi.signUp(username, password);
+      if (!result.hasSession) {
+        $("#loginMessage").textContent = "Usuário criado. Confirme o cadastro ou desative Confirm email no Supabase.";
+        return;
+      }
+      currentUser = result.username;
+      $("#loginDialog").close();
+      $("#changePasswordDialog").showModal();
+      renderAuth();
+    } catch (error) {
+      $("#loginMessage").textContent = error.message || "Não foi possível cadastrar o usuário.";
+    }
   }
 
   async function login(event) {
     event.preventDefault();
     const username = normalize($("#loginUsername").value);
     const password = $("#loginPassword").value;
-    const user = loadUsers()[keyText(username)];
-    if (!user || user.passwordHash !== await hashPassword(password)) {
-      $("#loginMessage").textContent = "Usuário ou senha inválidos.";
+    if (!onlineMode) {
+      $("#loginMessage").textContent = "Login indisponível no modo fallback.";
       return;
     }
-    currentUser = user.username;
-    $("#loginDialog").close();
-    if (user.mustChangePassword) {
-      $("#changePasswordMessage").textContent = "";
-      $("#newPassword").value = "";
-      $("#confirmPassword").value = "";
-      $("#changePasswordDialog").showModal();
-      $("#newPassword").focus();
-    } else {
-      sessionStorage.setItem(sessionKey, currentUser);
-      renderAuth();
-      showToast(`Conectado como ${currentUser}.`);
+    try {
+      const user = await supabaseApi.signIn(username, password);
+      currentUser = user.username;
+      $("#loginDialog").close();
+      if (user.mustChangePassword) {
+        $("#changePasswordMessage").textContent = "";
+        $("#newPassword").value = "";
+        $("#confirmPassword").value = "";
+        $("#changePasswordDialog").showModal();
+        $("#newPassword").focus();
+      } else {
+        renderAuth();
+        showToast(`Conectado como ${currentUser}.`);
+      }
+    } catch {
+      $("#loginMessage").textContent = "Usuário ou senha inválidos.";
     }
   }
 
@@ -211,8 +185,8 @@
     event.preventDefault();
     const password = $("#newPassword").value;
     const confirmation = $("#confirmPassword").value;
-    if (password.length < 4) {
-      $("#changePasswordMessage").textContent = "A nova senha deve ter pelo menos 4 caracteres.";
+    if (password.length < 6) {
+      $("#changePasswordMessage").textContent = "A nova senha deve ter pelo menos 6 caracteres.";
       return;
     }
     if (password === defaultPassword) {
@@ -223,22 +197,19 @@
       $("#changePasswordMessage").textContent = "As senhas não conferem.";
       return;
     }
-    const users = loadUsers();
-    const key = keyText(currentUser);
-    if (!users[key]) return;
-    users[key].passwordHash = await hashPassword(password);
-    users[key].mustChangePassword = false;
-    users[key].passwordChangedAt = new Date().toISOString();
-    localStorage.setItem(usersKey, JSON.stringify(users));
-    sessionStorage.setItem(sessionKey, currentUser);
-    $("#changePasswordDialog").close();
-    renderAuth();
-    showToast("Senha alterada. Acesso liberado.");
+    try {
+      await supabaseApi.changePassword(password);
+      $("#changePasswordDialog").close();
+      renderAuth();
+      showToast("Senha alterada. Acesso liberado.");
+    } catch (error) {
+      $("#changePasswordMessage").textContent = error.message || "Não foi possível alterar a senha.";
+    }
   }
 
-  function logout() {
+  async function logout() {
+    if (onlineMode) await supabaseApi.signOut();
     currentUser = null;
-    sessionStorage.removeItem(sessionKey);
     renderAuth();
     showToast("Sessão encerrada.");
   }
@@ -298,6 +269,7 @@
   }
 
   function fillSelect(select, values) {
+    [...select.options].slice(1).forEach((option) => option.remove());
     values.forEach((value) => {
       const option = document.createElement("option");
       option.value = value;
@@ -688,58 +660,31 @@
     }
   }
 
-  function openPhotoDb() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(photoDbName, 1);
-      request.onupgradeneeded = () => {
-        const store = request.result.createObjectStore("photos", { keyPath: "id" });
-        store.createIndex("taskId", "taskId");
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
   async function getTaskPhotos(taskId) {
-    const db = await openPhotoDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction("photos").objectStore("photos").index("taskId").getAll(taskId);
-      request.onsuccess = () => resolve(request.result.sort((a, b) => a.createdAt - b.createdAt));
-      request.onerror = () => reject(request.error);
-    });
+    if (onlineMode) return supabaseApi.getTaskPhotos(taskId);
+    return fallbackPhotos.filter((photo) => photo.taskId === taskId).sort((a, b) => a.createdAt - b.createdAt);
   }
 
   async function loadPhotoTaskIds() {
-    const db = await openPhotoDb();
-    const records = await new Promise((resolve, reject) => {
-      const request = db.transaction("photos").objectStore("photos").getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-    photoTaskIds = new Set(records.map((photo) => photo.taskId));
+    photoTaskIds = onlineMode
+      ? await supabaseApi.loadPhotoTaskIds()
+      : new Set(fallbackPhotos.map((photo) => photo.taskId));
   }
 
   async function putPhoto(photo) {
-    const db = await openPhotoDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction("photos", "readwrite").objectStore("photos").put(photo);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    if (onlineMode) return supabaseApi.uploadPhoto(photo, currentUser);
+    fallbackPhotos.push(photo);
+    return photo;
   }
 
   async function removePhoto(photoId) {
-    const db = await openPhotoDb();
-    return new Promise((resolve, reject) => {
-      const request = db.transaction("photos", "readwrite").objectStore("photos").delete(photoId);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    if (onlineMode) return supabaseApi.removePhoto(photoId);
+    fallbackPhotos = fallbackPhotos.filter((photo) => photo.id !== photoId);
   }
 
   async function removeTaskPhotos(taskId) {
-    const photos = await getTaskPhotos(taskId);
-    await Promise.all(photos.map((photo) => removePhoto(photo.id)));
+    if (onlineMode) return supabaseApi.removeTaskPhotos(taskId);
+    fallbackPhotos = fallbackPhotos.filter((photo) => photo.taskId !== taskId);
   }
 
   function renderPhotoGallery() {
@@ -802,8 +747,8 @@
           createdAt: Date.now(),
           dataUrl: await compressImage(file)
         };
-        await putPhoto(photo);
-        currentPhotos.push(photo);
+        const storedPhoto = await putPhoto(photo);
+        currentPhotos.push(storedPhoto);
       }
       photoTaskIds.add(state.currentId);
       renderPhotoGallery();
@@ -815,7 +760,7 @@
     $("#taskPhotos").value = "";
   }
 
-  function saveCurrentTask(event) {
+  async function saveCurrentTask(event) {
     event.preventDefault();
     if (!currentUser) {
       openLogin();
@@ -862,12 +807,16 @@
         delete completionAudit[field];
       }
     });
-    appendReportEntries(reportEntries);
-    edits[state.currentId] = update;
-    localStorage.setItem(storageKey, JSON.stringify(edits));
-    $("#taskDialog").close();
-    refresh();
-    showToast("Alterações salvas com sucesso.");
+    try {
+      if (onlineMode) await supabaseApi.saveEdit(state.currentId, update, currentUser);
+      await appendReportEntries(reportEntries);
+      edits[state.currentId] = update;
+      $("#taskDialog").close();
+      refresh();
+      showToast(onlineMode ? "Alterações salvas no Supabase." : "Alterações temporárias salvas nesta sessão.");
+    } catch (error) {
+      showToast(error.message || "Não foi possível salvar as alterações.");
+    }
   }
 
   async function resetCurrentTask() {
@@ -876,13 +825,17 @@
       return;
     }
     if (!state.currentId) return;
-    delete edits[state.currentId];
-    localStorage.setItem(storageKey, JSON.stringify(edits));
-    await removeTaskPhotos(state.currentId);
-    photoTaskIds.delete(state.currentId);
-    $("#taskDialog").close();
-    refresh();
-    showToast("Tarefa restaurada para os dados originais.");
+    try {
+      if (onlineMode) await supabaseApi.deleteEdit(state.currentId);
+      delete edits[state.currentId];
+      await removeTaskPhotos(state.currentId);
+      photoTaskIds.delete(state.currentId);
+      $("#taskDialog").close();
+      refresh();
+      showToast("Tarefa restaurada para os dados originais.");
+    } catch (error) {
+      showToast(error.message || "Não foi possível restaurar a tarefa.");
+    }
   }
 
   function exportCsv() {
@@ -1058,37 +1011,85 @@
     });
   }
 
-  if (!tasks.length) {
-    document.body.innerHTML = '<main style="padding:40px;font-family:Arial"><h1>Base de dados não encontrada</h1><p>Verifique se o arquivo data.js está na mesma pasta do aplicativo.</p></main>';
-    return;
+  function updateConnectionLabel() {
+    const label = $(".sidebar-footer span:last-child");
+    if (label) label.textContent = onlineMode ? "Sincronizado com Supabase" : "Modo fallback: data.js";
+  }
+
+  async function syncRemoteState({ reloadItems = true } = {}) {
+    if (!onlineMode) return;
+    const [remoteItems, remoteEdits, remoteHistory, remotePhotoIds] = await Promise.all([
+      reloadItems ? supabaseApi.loadItems() : Promise.resolve(tasks),
+      supabaseApi.loadEdits(),
+      supabaseApi.loadHistory(),
+      supabaseApi.loadPhotoTaskIds()
+    ]);
+    if (remoteItems.length) tasks = remoteItems;
+    edits = remoteEdits;
+    reportEntriesCache = remoteHistory;
+    photoTaskIds = remotePhotoIds;
+    rebuildNumericOptions();
+  }
+
+  function scheduleRealtimeSync() {
+    clearTimeout(realtimeTimer);
+    realtimeTimer = setTimeout(async () => {
+      try {
+        await syncRemoteState();
+        populateFilters();
+        refresh();
+        if (state.currentId && $("#taskDialog").open) {
+          currentPhotos = await getTaskPhotos(state.currentId);
+          renderPhotoGallery();
+        }
+      } catch {
+        showToast("Não foi possível aplicar a atualização em tempo real.");
+      }
+    }, 250);
+  }
+
+  async function initializeData() {
+    rebuildNumericOptions();
+    if (!supabaseApi.configured) return;
+    try {
+      onlineMode = true;
+      await syncRemoteState();
+      const session = await supabaseApi.getCurrentUser();
+      currentUser = session?.username || null;
+      realtimeChannel = supabaseApi.subscribe(scheduleRealtimeSync);
+    } catch {
+      onlineMode = false;
+      edits = {};
+      reportEntriesCache = [];
+      photoTaskIds = new Set();
+      rebuildNumericOptions();
+    }
   }
 
   async function init() {
-    await seedDefaultUsers();
-    currentUser = loadSession();
+    await initializeData();
+    if (!tasks.length) {
+      document.body.innerHTML = '<main style="padding:40px;font-family:Arial"><h1>Base de dados não encontrada</h1><p>Configure o Supabase ou verifique se data.js está disponível.</p></main>';
+      return;
+    }
     await loadPhotoTaskIds();
     populateFilters();
     bindEvents();
     renderAuth();
+    updateConnectionLabel();
     refresh();
     setInterval(() => {
       if (state.view === "dashboard") renderDashboard();
       if (state.view === "visual") renderVisualMarkers();
     }, 2000);
+    if (!onlineMode) {
+      showToast(supabaseApi.configured
+        ? "Supabase indisponível. Usando data.js como fallback."
+        : "Preencha URL e ANON KEY em supabaseClient.js para ativar o modo multiusuário.");
+    }
   }
 
-  init().catch(() => {
-    seedDefaultUsers().finally(() => {
-      currentUser = loadSession();
-      populateFilters();
-      bindEvents();
-      renderAuth();
-      refresh();
-      setInterval(() => {
-        if (state.view === "dashboard") renderDashboard();
-        if (state.view === "visual") renderVisualMarkers();
-      }, 2000);
-      showToast("O armazenamento de fotos não está disponível neste navegador.");
-    });
+  init().catch((error) => {
+    document.body.innerHTML = `<main style="padding:40px;font-family:Arial"><h1>Não foi possível iniciar o SG-1205</h1><p>${escapeHtml(error.message || "Erro desconhecido")}</p></main>`;
   });
 })();
