@@ -1,21 +1,45 @@
 (() => {
   "use strict";
 
-  const SUPABASE_URL = "COLE_AQUI_A_URL_DO_SUPABASE";
-  const SUPABASE_ANON_KEY = "COLE_AQUI_A_ANON_KEY_DO_SUPABASE";
+  const SUPABASE_URL = "https://nccqwutudmgrbnwvvxjy.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_cSy55MU4h2xbdTuntX919w_IUsZGXg1";
   const PHOTO_BUCKET = "fotos-sg1205";
-  const configured = /^https:\/\/.+\.supabase\.co$/i.test(SUPABASE_URL)
-    && !SUPABASE_ANON_KEY.startsWith("COLE_AQUI");
-  const client = configured && window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const validUrl = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPABASE_URL);
+  const validKey = /^(?:eyJ|sb_publishable_)[a-zA-Z0-9._-]+$/.test(SUPABASE_ANON_KEY);
+  const libraryAvailable = Boolean(window.supabase?.createClient);
+  const configured = validUrl && validKey && libraryAvailable;
+  const configurationError = !validUrl
+    ? "SUPABASE_URL ausente ou inválida."
+    : !validKey
+      ? "SUPABASE_ANON_KEY ausente ou inválida."
+      : !libraryAvailable
+        ? "Biblioteca Supabase não foi carregada."
+      : "";
+  let client = null;
+  let initializationError = configurationError;
+
+  if (configured) {
+    try {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
           storage: window.sessionStorage
         }
-      })
-    : null;
+      });
+      console.info("[SG-1205] Cliente Supabase inicializado.", { url: SUPABASE_URL });
+    } catch (error) {
+      initializationError = error?.message || "Erro desconhecido ao criar o cliente Supabase.";
+      console.error("[SG-1205] Falha em supabase.createClient:", error);
+    }
+  } else {
+    console.error("[SG-1205] Supabase não configurado:", configurationError, {
+      urlValida: validUrl,
+      chaveValida: validKey,
+      bibliotecaDisponivel: libraryAvailable
+    });
+  }
 
   const normalizeItem = (row) => {
     const source = row.dados && typeof row.dados === "object" ? { ...row.dados, id: row.id } : row;
@@ -69,7 +93,8 @@
   };
 
   const api = {
-    configured,
+    configured: Boolean(client),
+    configurationError: initializationError,
     client,
     photoBucket: PHOTO_BUCKET,
 
@@ -175,6 +200,17 @@
         hasSession: Boolean(data.session),
         mustChangePassword: true
       };
+    },
+
+    async resetPassword(username) {
+      const { error } = await client.auth.resetPasswordForEmail(usernameEmail(username), {
+        redirectTo: window.location.href.split("#")[0].split("?")[0]
+      });
+      if (error) throw error;
+    },
+
+    onAuthStateChange(callback) {
+      return client.auth.onAuthStateChange(callback);
     },
 
     async changePassword(password) {

@@ -4,6 +4,7 @@
   let tasks = window.SG1205_DATA || [];
   let metadata = window.SG1205_META || {};
   const supabaseApi = window.SG1205_SUPABASE || { configured: false };
+  const authAvailable = Boolean(supabaseApi.configured && supabaseApi.client);
   const defaultPassword = "senha1234";
   const pageSize = 12;
   const checkFields = [
@@ -136,7 +137,7 @@
       $("#loginMessage").textContent = "Informe usuário com 3 caracteres e senha entre 6 e 19 caracteres.";
       return;
     }
-    if (!onlineMode) {
+    if (!authAvailable) {
       $("#loginMessage").textContent = "Cadastros exigem conexão com o Supabase.";
       return;
     }
@@ -156,12 +157,31 @@
     }
   }
 
+  async function recoverPassword() {
+    const username = normalize($("#loginUsername").value);
+    if (username.length < 3) {
+      $("#loginMessage").textContent = "Informe o usuário para recuperar a senha.";
+      return;
+    }
+    if (!authAvailable) {
+      $("#loginMessage").textContent = "Recuperação indisponível: configure a conexão com o Supabase.";
+      return;
+    }
+    try {
+      await supabaseApi.resetPassword(username);
+      $("#loginMessage").textContent = "Link de recuperação enviado para o e-mail do usuário.";
+    } catch (error) {
+      $("#loginMessage").textContent = error.message || "Não foi possível enviar a recuperação de senha.";
+    }
+  }
+
   async function login(event) {
     event.preventDefault();
     const username = normalize($("#loginUsername").value);
     const password = $("#loginPassword").value;
-    if (!onlineMode) {
-      $("#loginMessage").textContent = "Login indisponível no modo fallback.";
+    if (!authAvailable) {
+      $("#loginMessage").textContent = supabaseApi.configurationError
+        || "Login indisponível: configure a conexão com o Supabase.";
       return;
     }
     try {
@@ -216,7 +236,7 @@
   }
 
   async function logout() {
-    if (onlineMode) await supabaseApi.signOut();
+    if (authAvailable) await supabaseApi.signOut();
     currentUser = null;
     mustChangePassword = false;
     renderAuth();
@@ -959,6 +979,7 @@
     $("#closeLogin").addEventListener("click", () => $("#loginDialog").close());
     $("#loginForm").addEventListener("submit", login);
     $("#registerButton").addEventListener("click", registerUser);
+    $("#recoverPasswordButton").addEventListener("click", recoverPassword);
     $("#changePasswordForm").addEventListener("submit", changePassword);
     $("#changePasswordDialog").addEventListener("cancel", (event) => event.preventDefault());
     $("#saveTask").addEventListener("click", saveCurrentTask);
@@ -1023,7 +1044,10 @@
 
   function updateConnectionLabel() {
     const label = $(".sidebar-footer span:last-child");
-    if (label) label.textContent = onlineMode ? "Sincronizado com Supabase" : "Modo fallback: data.js";
+    if (!label) return;
+    if (onlineMode) label.textContent = "Conectado ao Supabase";
+    else if (authAvailable) label.textContent = "Login Supabase / dados em fallback";
+    else label.textContent = "Modo fallback: data.js";
   }
 
   async function syncRemoteState({ reloadItems = true } = {}) {
@@ -1039,6 +1063,12 @@
     reportEntriesCache = remoteHistory;
     photoTaskIds = remotePhotoIds;
     rebuildNumericOptions();
+    console.info("[SG-1205] Dados sincronizados com o Supabase.", {
+      itens: tasks.length,
+      alteracoes: Object.keys(edits).length,
+      historico: reportEntriesCache.length,
+      itensComFoto: photoTaskIds.size
+    });
   }
 
   function scheduleRealtimeSync() {
@@ -1060,15 +1090,36 @@
 
   async function initializeData() {
     rebuildNumericOptions();
-    if (!supabaseApi.configured) return;
+    if (!authAvailable) return;
     try {
-      onlineMode = true;
-      await syncRemoteState();
       const session = await supabaseApi.getCurrentUser();
       currentUser = session?.username || null;
       mustChangePassword = Boolean(session?.mustChangePassword);
+      supabaseApi.onAuthStateChange((event) => {
+        if (event !== "PASSWORD_RECOVERY") return;
+        mustChangePassword = true;
+        $("#loginDialog").close();
+        $("#changePasswordMessage").textContent = "Defina sua nova senha para recuperar o acesso.";
+        $("#newPassword").value = "";
+        $("#confirmPassword").value = "";
+        $("#changePasswordDialog").showModal();
+        $("#newPassword").focus();
+      });
+    } catch (error) {
+      console.error("[SG-1205] Falha ao inicializar o Supabase Auth:", error);
+    }
+    try {
+      onlineMode = true;
+      await syncRemoteState();
       realtimeChannel = supabaseApi.subscribe(scheduleRealtimeSync);
-    } catch {
+    } catch (error) {
+      console.error("[SG-1205] Entrada em modo fallback: falha ao sincronizar os dados do Supabase.", {
+        mensagem: error?.message,
+        codigo: error?.code,
+        detalhes: error?.details,
+        dica: error?.hint,
+        erro: error
+      });
       onlineMode = false;
       edits = {};
       reportEntriesCache = [];
@@ -1101,9 +1152,9 @@
       if (state.view === "visual") renderVisualMarkers();
     }, 2000);
     if (!onlineMode) {
-      showToast(supabaseApi.configured
-        ? "Supabase indisponível. Usando data.js como fallback."
-        : "Preencha URL e ANON KEY em supabaseClient.js para ativar o modo multiusuário.");
+      showToast(authAvailable
+        ? "Login conectado ao Supabase; dados usando data.js como fallback."
+        : supabaseApi.configurationError || "Preencha URL e ANON KEY em supabaseClient.js.");
     }
   }
 

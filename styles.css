@@ -336,6 +336,7 @@ h1 { font-size: 25px; }
 .login-body input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(17,113,95,.1); }
 .login-message { min-height: 16px; color: var(--red); font-size: 10px; }
 .login-footer { padding: 16px 26px; display: flex; justify-content: space-between; border-top: 1px solid var(--line); background: #fafbfc; }
+.login-secondary-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .password-footer { justify-content: flex-end; }
 .dialog-footer { padding: 16px 26px; display: flex; justify-content: space-between; border-top: 1px solid var(--line); background: #fafbfc; }
 .toast { position: fixed; right: 25px; bottom: 25px; z-index: 10; padding: 12px 16px; border-radius: 9px; color: white; background: #22334a; box-shadow: var(--shadow); font-size: 11px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s; }
