@@ -517,7 +517,8 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
 @media print {
   @page { size: A3 landscape; margin: 5mm; }
   @page report-page { size: A4 portrait; margin: 10mm; }
-  html, body { width: 410mm; height: 287mm; overflow: hidden; }
+  html.print-visual,
+  body.print-visual { width: 410mm; height: 287mm; overflow: hidden; }
   body { margin: 0; background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .sidebar, .topbar, .visual-toolbar p, #printVisualButton, #dashboardView, #tasksView,
   .task-dialog, .login-dialog, .toast { display: none !important; }
