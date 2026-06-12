@@ -386,6 +386,12 @@
   }
 
   function renderVisualMarkers() {
+    const hasCanceledControl = (task) => progressFields.some(([field]) =>
+      keyText(task[field]) === "canc"
+    );
+    const visualTaskState = (task) => hasCanceledControl(task)
+      ? "canceled"
+      : taskStatus(taskMetrics(task), task).key;
     const current = tasks.map(mergedTask).filter((task) =>
       primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
     );
@@ -421,7 +427,7 @@
         <strong>${escapeHtml(visualTitle(group.title))}</strong>
         <div>
           ${visibleTasks.map((task) => {
-            const itemState = taskStatus(taskMetrics(task), task).key;
+            const itemState = visualTaskState(task);
             const item = normalize(task.item);
             const accessibleLabel = `Item ${item}: ${task.descricao}`;
             return `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(accessibleLabel)}" aria-label="${escapeHtml(accessibleLabel)}">${escapeHtml(item)}</button>`;
