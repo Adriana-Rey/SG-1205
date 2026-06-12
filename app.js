@@ -91,6 +91,7 @@
   let photoTaskIds = new Set();
   let activePrintMode = null;
   let printPageStyle = null;
+  let originalViewportContent = null;
   let currentPhotos = [];
   let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
 
@@ -707,10 +708,16 @@
     preparePrintMode("report");
   }
 
-  function preparePrintMode(mode) {
+  async function preparePrintMode(mode) {
     activePrintMode = mode;
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      originalViewportContent = viewport.getAttribute("content");
+      viewport.setAttribute("content", "width=1024");
+    }
     applyPrintMode();
     void document.body.offsetHeight;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     window.print();
   }
 
@@ -737,6 +744,11 @@
     if (printPageStyle) {
       printPageStyle.remove();
       printPageStyle = null;
+    }
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport && originalViewportContent) {
+      viewport.setAttribute("content", originalViewportContent);
+      originalViewportContent = null;
     }
     document.documentElement.classList.remove("print-report", "print-visual");
     document.body.classList.remove("print-report", "print-visual");
