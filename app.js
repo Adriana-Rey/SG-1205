@@ -357,14 +357,12 @@
     const otherTasks = current.filter((task) =>
       !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
     ).length;
-    const pendingChecks = metrics.reduce((sum, item) => sum + item.pending, 0);
-    const completedChecks = metrics.reduce((sum, item) => sum + item.completed, 0);
-    const canceledChecks = progressTasks.reduce((sum, task) =>
-      sum + progressFields.filter(([field]) => keyText(task[field]) === "canc").length, 0);
-    const totalActive = pendingChecks + completedChecks;
-    const progress = totalActive ? Math.round((completedChecks / totalActive) * 100) : 0;
-    const pendingDegrees = totalActive ? (pendingChecks / totalActive) * 360 : 0;
-    const completedDegrees = totalActive ? (completedChecks / totalActive) * 360 : 0;
+    const totalForProgress = pendingTasks + clearTasks;
+    const totalActivities = pendingTasks + inProgressTasks + clearTasks + canceledTasks;
+    const progress = totalForProgress ? Math.round((clearTasks / totalForProgress) * 100) : 0;
+    const pendingDegrees = totalActivities ? (pendingTasks / totalActivities) * 360 : 0;
+    const inProgressDegrees = totalActivities ? (inProgressTasks / totalActivities) * 360 : 0;
+    const completedDegrees = totalActivities ? (clearTasks / totalActivities) * 360 : 0;
     $("#totalTasks").textContent = progressTasks.length;
     $("#navTaskCount").textContent = current.length;
     $("#totalTags").textContent = `${progressTasks.length} itens no resumo`;
@@ -375,11 +373,13 @@
     $("#progressTasks").textContent = inProgressTasks;
     $("#otherTasks").textContent = otherTasks;
     $("#progressPercent").textContent = `${progress}%`;
-    $("#progressPending").textContent = pendingChecks;
-    $("#progressCompleted").textContent = completedChecks;
-    $("#progressCanceled").textContent = canceledChecks;
+    $("#progressPending").textContent = pendingTasks;
+    $("#progressInProgress").textContent = inProgressTasks;
+    $("#progressCompleted").textContent = clearTasks;
+    $("#progressCanceled").textContent = canceledTasks;
     $("#progressRing").style.setProperty("--pending-end", `${pendingDegrees}deg`);
-    $("#progressRing").style.setProperty("--completed-end", `${pendingDegrees + completedDegrees}deg`);
+    $("#progressRing").style.setProperty("--progress-end", `${pendingDegrees + inProgressDegrees}deg`);
+    $("#progressRing").style.setProperty("--completed-end", `${pendingDegrees + inProgressDegrees + completedDegrees}deg`);
 
     renderCheckChart(progressTasks);
     renderOwners(current);
@@ -484,7 +484,7 @@
     })).filter((group) => group.fields.length);
 
     $("#checkChart").innerHTML = visibleGroups.map((group) => `
-      <section class="control-group">
+      <section class="control-group control-group-${keyText(group.title)}">
         <header>
           <strong>${escapeHtml(group.title)}</strong>
           <span>${group.fields.reduce((sum, field) => sum + counts[field], 0)} pendências</span>

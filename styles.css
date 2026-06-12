@@ -105,8 +105,8 @@ h1 { font-size: 25px; }
 .hero-progress strong { font-size: 13px; }
 .hero-progress small { margin-top: 4px; color: #bedbd2; font-size: 10px; }
 .progress-ring {
-  --pending-end: 0deg; --completed-end: 0deg; width: 82px; height: 82px; flex: 0 0 auto; display: grid; place-items: center;
-  border-radius: 50%; background: conic-gradient(#e25a52 0 var(--pending-end), #62d39e var(--pending-end) var(--completed-end), #f2bd4d var(--completed-end) 360deg);
+  --pending-end: 0deg; --progress-end: 0deg; --completed-end: 0deg; width: 82px; height: 82px; flex: 0 0 auto; display: grid; place-items: center;
+  border-radius: 50%; background: conic-gradient(#e25a52 0 var(--pending-end), #5792d0 var(--pending-end) var(--progress-end), #62d39e var(--progress-end) var(--completed-end), #f2bd4d var(--completed-end) 360deg);
 }
 .progress-ring::before { content: ""; position: absolute; width: 66px; height: 66px; border-radius: 50%; background: #155f50; }
 .progress-ring span { position: relative; z-index: 1; font-family: Manrope, sans-serif; font-size: 17px; font-weight: 800; }
@@ -115,6 +115,7 @@ h1 { font-size: 25px; }
 .progress-stat i { width: 7px; height: 7px; border-radius: 50%; }
 .progress-stat b { color: white; font-size: 9px; }
 .progress-stat.pending i { background: #e25a52; }
+.progress-stat.progress i { background: #5792d0; }
 .progress-stat.completed i { background: #62d39e; }
 .progress-stat.canceled i { background: #f2bd4d; }
 
@@ -140,9 +141,10 @@ h1 { font-size: 25px; }
 .panel-head h3 { margin-top: 5px; font-size: 16px; }
 .text-button { border: 0; color: var(--blue); background: transparent; font-size: 10px; font-weight: 700; }
 .bar-chart { display: grid; gap: 13px; }
-.control-distribution { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
-.control-group { padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd; }
-.control-group:first-child, .control-group:last-child { grid-column: span 2; }
+.control-distribution { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
+.control-group { min-width: 0; height: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd; }
+.control-group-execucao, .control-group-producao { grid-column: span 2; }
+.control-group-qualidade, .control-group-integridade { align-self: stretch; }
 .control-group header { margin-bottom: 15px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .control-group header strong { color: #263449; font-size: 12px; }
 .control-group header span { color: #8995a5; font-size: 9px; }
@@ -421,7 +423,7 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   .checks-grid { grid-template-columns: repeat(2, 1fr); }
   .priority-groups { grid-template-columns: 1fr; }
   .control-distribution { grid-template-columns: 1fr; }
-  .control-group:first-child, .control-group:last-child { grid-column: span 1; }
+  .control-group-execucao, .control-group-producao { grid-column: span 1; }
   .equipment-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .owner-list { grid-template-columns: 1fr; }
   .visual-unmapped .visual-card-grid,
