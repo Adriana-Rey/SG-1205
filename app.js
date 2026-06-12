@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  let tasks = window.SG1205_DATA || [];
+  const fallbackTasks = window.SG1205_DATA || [];
+  let tasks = fallbackTasks;
   let metadata = window.SG1205_META || {};
   const supabaseApi = window.SG1205_SUPABASE || { configured: false };
   const authAvailable = Boolean(supabaseApi.configured && supabaseApi.client);
@@ -32,12 +33,12 @@
       fields: ["executante"]
     },
     {
-      title: "Integridade",
-      fields: ["visual", "replicaMetalografica", "lpResp", "pmResp", "meResp", "cpResp", "irisResp", "usResp"]
-    },
-    {
       title: "Qualidade",
       fields: ["evsResp", "ieis", "lpQualidade", "pmQualidade", "usQualidade", "rx", "ttat", "dureza", "planoTorque", "relatorioTorque", "petp", "th", "isolamentoRefratario", "registroFotografico", "lv"]
+    },
+    {
+      title: "Integridade",
+      fields: ["visual", "replicaMetalografica", "lpResp", "pmResp", "meResp", "cpResp", "irisResp", "usResp"]
     },
     {
       title: "Produção",
@@ -94,6 +95,11 @@
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const normalize = (value) => String(value ?? "").trim().replace(/\s+/g, " ");
   const keyText = (value) => normalize(value).toLocaleLowerCase("pt-BR");
+  const taskIdentity = (task) => [
+    keyText(task.equipamento),
+    keyText(task.item),
+    keyText(task.descricao)
+  ].join("|");
   const isPending = (value) => keyText(value) === "pend";
   const isApplicable = (value) => value !== null && value !== "" && !["n.a", "-", "canc"].includes(keyText(value));
 
@@ -662,6 +668,18 @@
         <strong>${escapeHtml(entry.user)}</strong>
       </article>`;
     }).join("");
+    $("#printReportRows").innerHTML = entries.map((entry) => {
+      const task = taskById.get(entry.taskId) || {};
+      const date = new Date(entry.at);
+      return `<tr>
+        <td>#${escapeHtml(task.item || entry.item || "")}</td>
+        <td>${escapeHtml(task.equipamento || entry.equipamento || "")}</td>
+        <td>${escapeHtml(entry.user)}</td>
+        <td>${date.toLocaleDateString("pt-BR")}</td>
+        <td>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
+        <td>${escapeHtml(entry.observation || "")}</td>
+      </tr>`;
+    }).join("");
     $("#reportEmpty").hidden = entries.length !== 0;
   }
 
@@ -1111,7 +1129,18 @@
       supabaseApi.loadHistory(),
       supabaseApi.loadPhotoTaskIds()
     ]);
-    if (remoteItems.length) tasks = remoteItems;
+    if (remoteItems.length) {
+      const remoteByIdentity = new Map(remoteItems.map((task) => [taskIdentity(task), task]));
+      tasks = fallbackTasks.map((fallbackTask) => {
+        const remoteTask = remoteByIdentity.get(taskIdentity(fallbackTask));
+        return {
+          ...fallbackTask,
+          ...(remoteTask || {}),
+          id: fallbackTask.id,
+          executante: fallbackTask.executante
+        };
+      });
+    }
     edits = remoteEdits;
     reportEntriesCache = remoteHistory;
     photoTaskIds = remotePhotoIds;
