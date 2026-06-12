@@ -26,6 +26,7 @@
   const numericControlFields = new Set(["petp", "ieis", "planoTorque"]);
   const progressFields = checkFields.filter(([field]) => !numericControlFields.has(field));
   const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
+  const executionOnlyUsers = new Set(["AMILTON", "ELIAS", "ERON", "ERONILDES", "EDILSON"]);
   let numericOptionsByField = {};
   const controlGroups = [
     {
@@ -259,6 +260,10 @@
     delete localEdit.responsavel;
     numericControlFields.forEach((field) => delete localEdit[field]);
     return { ...task, ...localEdit };
+  }
+
+  function canEditOnlyExecution() {
+    return executionOnlyUsers.has(normalize(currentUser).toLocaleUpperCase("pt-BR"));
   }
 
   function taskMetrics(task) {
@@ -713,7 +718,8 @@
     $("#dialogOwner").value = normalize(task.responsavel);
     $("#dialogDescription").textContent = task.descricao;
     $("#dialogObservation").value = task.observacao || "";
-    $("#dialogObservation").disabled = !currentUser;
+    const executionOnly = canEditOnlyExecution();
+    $("#dialogObservation").disabled = !currentUser || executionOnly;
     updateObservationCount();
     currentPhotos = [];
     renderPhotoGallery();
@@ -740,16 +746,21 @@
                 : "";
       return `<div class="check-editor">
         <label for="check-${field}">${escapeHtml(label)}${audit ? `<small>Concluído por ${escapeHtml(audit.user)} em ${escapeHtml(formatAuditDate(audit.at))}</small>` : ""}</label>
-        <select id="check-${field}" data-check-field="${field}" data-previous-value="${escapeHtml(value)}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) ? "" : "disabled"}>
+        <select id="check-${field}" data-check-field="${field}" data-previous-value="${escapeHtml(value)}" class="${statusClass}" ${currentUser && !numericControlFields.has(field) && (!executionOnly || field === "executante") ? "" : "disabled"}>
           ${hasValidStatus || hasNumericValue ? "" : '<option value="" selected disabled hidden>Selecione</option>'}
           ${options.map((option) => `<option value="${escapeHtml(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
       </div>`;
     }).join("");
     $("#saveTask").disabled = !currentUser;
-    $("#resetTask").disabled = !currentUser;
+    $("#resetTask").disabled = !currentUser || executionOnly;
     $(".photo-upload").classList.toggle("disabled", !currentUser);
     renderAuth();
+    $("#editingIdentity").textContent = executionOnly
+      ? `${currentUser}: alteração permitida somente em Executante`
+      : currentUser
+        ? `Alterações registradas por ${currentUser}`
+        : "Entre para registrar alterações";
     $("#taskDialog").showModal();
     try {
       const photos = await getTaskPhotos(id);
@@ -871,6 +882,7 @@
     const original = tasks.find((task) => task.id === state.currentId);
     if (!original) return;
     const previous = mergedTask(original);
+    const executionOnly = canEditOnlyExecution();
     const hasNewCompletion = $$("[data-check-field]").some((select) => (
       !numericControlFields.has(select.dataset.checkField)
       && keyText(select.value) === "conc"
@@ -883,13 +895,13 @@
     const completionAudit = { ...(previous.completionAudit || {}) };
     const reportEntries = [];
     const update = {
-      observacao: $("#dialogObservation").value.trim(),
+      observacao: executionOnly ? (previous.observacao || "") : $("#dialogObservation").value.trim(),
       completionAudit
     };
     $$("[data-check-field]").forEach((select) => {
       const field = select.dataset.checkField;
       if (numericControlFields.has(field)) return;
-      const nextValue = select.value;
+      const nextValue = executionOnly && field !== "executante" ? previous[field] : select.value;
       const previousValue = previous[field];
       update[field] = nextValue || previousValue;
       if (!nextValue) return;
@@ -925,6 +937,10 @@
   async function resetCurrentTask() {
     if (!currentUser) {
       openLogin();
+      return;
+    }
+    if (canEditOnlyExecution()) {
+      showToast("Seu acesso permite alterar somente o campo Executante.");
       return;
     }
     if (!state.currentId) return;
@@ -1083,6 +1099,12 @@
       if (trigger) openTask(Number(trigger.dataset.openId));
       const removeTrigger = event.target.closest("[data-remove-photo]");
       if (removeTrigger && currentUser) {
+        const activeTask = tasks.find((task) => task.id === state.currentId);
+        const task = activeTask ? mergedTask(activeTask) : null;
+        if (canEditOnlyExecution() && currentPhotos.length === 1 && task && keyText(task.executante) === "conc") {
+          showToast("A foto é obrigatória enquanto Executante estiver CONC.");
+          return;
+        }
         removePhoto(removeTrigger.dataset.removePhoto).then(async () => {
           currentPhotos = await getTaskPhotos(state.currentId);
           if (!currentPhotos.length) photoTaskIds.delete(state.currentId);
