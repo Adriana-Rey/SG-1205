@@ -22,9 +22,13 @@ create table if not exists public.historico_sg1205 (
   equipamento text,
   campo text not null,
   status text not null,
+  observacao text not null default '',
   usuario text not null,
   criado_em timestamptz not null default now()
 );
+
+alter table public.historico_sg1205
+add column if not exists observacao text not null default '';
 
 create table if not exists public.fotos_sg1205 (
   id text primary key,

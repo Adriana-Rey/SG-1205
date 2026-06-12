@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260611-100">
+  <link rel="stylesheet" href="styles.css?v=20260612-104">
 </head>
 <body>
   <div class="app-shell">
@@ -207,6 +207,7 @@
             <span>TAG / Equipamento</span>
             <span>Item e descrição</span>
             <span>Responsável</span>
+            <span>Executante</span>
             <span>Controles</span>
             <span>Situação</span>
             <span></span>
@@ -231,7 +232,10 @@
           <div>
             <h2>Histórico de Avanço</h2>
           </div>
-          <label class="select-wrap"><span>Data</span><input id="reportDateFilter" type="date"></label>
+          <div class="report-toolbar-actions">
+            <label class="select-wrap"><span>Data</span><input id="reportDateFilter" type="date"></label>
+            <button class="button button-primary" type="button" id="printReportButton">Imprimir</button>
+          </div>
         </div>
         <div class="table-card">
           <div class="report-table-head">
@@ -239,6 +243,7 @@
             <span>Equipamento</span>
             <span>Modalidade</span>
             <span>Atualização</span>
+            <span>Observação</span>
             <span>Data</span>
             <span>Hora</span>
             <span>Responsável pelo avanço</span>
@@ -334,9 +339,9 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260611-100"></script>
+  <script src="data.js?v=20260612-104"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js?v=20260611-100"></script>
-  <script src="app.js?v=20260611-100"></script>
+  <script src="supabaseClient.js?v=20260612-104"></script>
+  <script src="app.js?v=20260612-104"></script>
 </body>
 </html>

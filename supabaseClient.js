@@ -4,6 +4,7 @@
   const SUPABASE_URL = "https://nccqwutudmgrbnwvvxjy.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_cSy55MU4h2xbdTuntX919w_IUsZGXg1";
   const PHOTO_BUCKET = "fotos-sg1205";
+  const INITIAL_PASSWORD = "senha1234";
   const validUrl = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPABASE_URL);
   const validKey = /^(?:eyJ|sb_publishable_)[a-zA-Z0-9._-]+$/.test(SUPABASE_ANON_KEY);
   const libraryAvailable = Boolean(window.supabase?.createClient);
@@ -147,6 +148,7 @@
         equipamento: row.equipamento,
         field: row.campo,
         status: row.status,
+        observation: row.observacao || "",
         user: row.usuario,
         at: row.criado_em
       }));
@@ -160,10 +162,16 @@
         equipamento: entry.equipamento || "",
         campo: entry.field,
         status: entry.status,
+        observacao: entry.observation || "",
         usuario: entry.user,
         criado_em: entry.at
       }));
-      const { error } = await client.from("historico_sg1205").insert(rows);
+      let { error } = await client.from("historico_sg1205").insert(rows);
+      if (error && /observacao/i.test(`${error.message || ""} ${error.details || ""}`)) {
+        console.warn("[SG-1205] Coluna observacao ainda não existe no histórico; aplique supabase-schema.sql.");
+        const compatibleRows = rows.map(({ observacao, ...row }) => row);
+        ({ error } = await client.from("historico_sg1205").insert(compatibleRows));
+      }
       if (error) throw error;
     },
 
@@ -182,9 +190,23 @@
         password
       });
       if (error) throw error;
+      const mustChangePassword = Boolean(data.user?.user_metadata?.must_change_password)
+        || password === INITIAL_PASSWORD;
+      if (mustChangePassword && !data.user?.user_metadata?.must_change_password) {
+        const { error: metadataError } = await client.auth.updateUser({
+          data: {
+            ...(data.user?.user_metadata || {}),
+            username: getUsername(data.user) || username,
+            must_change_password: true
+          }
+        });
+        if (metadataError) {
+          console.warn("[SG-1205] Não foi possível registrar a exigência de troca de senha:", metadataError);
+        }
+      }
       return {
         username: getUsername(data.user),
-        mustChangePassword: Boolean(data.user?.user_metadata?.must_change_password)
+        mustChangePassword
       };
     },
 

@@ -8,6 +8,7 @@
   const defaultPassword = "senha1234";
   const pageSize = 12;
   const checkFields = [
+    ["executante", "EXECUTANTE"],
     ["visual", "VISUAL"], ["replicaMetalografica", "RÉP MET"],
     ["lpResp", "LP-I"], ["pmResp", "PM-I"],
     ["meResp", "ME"], ["cpResp", "CP"], ["irisResp", "ÍRIS"],
@@ -26,6 +27,10 @@
   const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
   let numericOptionsByField = {};
   const controlGroups = [
+    {
+      title: "Execução",
+      fields: ["executante"]
+    },
     {
       title: "Integridade",
       fields: ["visual", "replicaMetalografica", "lpResp", "pmResp", "meResp", "cpResp", "irisResp", "usResp"]
@@ -264,6 +269,17 @@
     if (task && !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))) {
       return { key: "other", label: "Outros" };
     }
+    if (task && keyText(task.executante) === "conc") {
+      const cqValues = progressFields
+        .map(([field]) => field)
+        .filter((field) => !["executante", "producao"].includes(field))
+        .map((field) => task[field]);
+      const cqApplicable = cqValues.filter(isApplicable);
+      const cqCompleted = cqApplicable.filter((value) => keyText(value) === "conc");
+      if (!cqApplicable.length || cqCompleted.length < cqApplicable.length) {
+        return { key: "progress", label: "Andamento" };
+      }
+    }
     if (metrics.inProgress > 0) return { key: "progress", label: "Andamento" };
     if (metrics.canceled > 0 && metrics.pending === 0 && metrics.completed === 0) {
       return { key: "canceled", label: "Cancelada" };
@@ -363,15 +379,6 @@
     renderAreaSummary(current);
   }
 
-  function visualItemState(itemTasks) {
-    const states = itemTasks.map((task) => taskStatus(taskMetrics(task), task).key);
-    if (states.includes("progress")) return "progress";
-    if (states.includes("pending")) return "pending";
-    if (states.includes("clear")) return "clear";
-    if (states.includes("canceled")) return "canceled";
-    return "pending";
-  }
-
   function renderVisualMarkers() {
     const current = tasks.map(mergedTask).filter((task) =>
       primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
@@ -385,18 +392,33 @@
     const visualTitle = (title) => normalize(title).toLocaleUpperCase("pt-BR") === "PERMUTADOR AMOSTRA"
       ? "Permutador de Amostra"
       : title;
-    const renderGroup = (group) => {
-      const visibleItems = group.items.filter((item) => (byItem[item] || []).length);
-      if (!visibleItems.length) return "";
+    const tasksForVisualGroup = (group) => group.items.flatMap((item) => {
+      const itemTasks = byItem[item] || [];
+      if (itemTasks.length <= 1) return itemTasks;
+      const groupName = keyText(group.title);
+      const matches = itemTasks.filter((task) => {
+        const description = keyText(task.descricao);
+        if (groupName.includes("tubulão")) return description.includes("tubulão");
+        if (groupName.includes("superaquecedor")) return description.includes("superaquecedor");
+        if (groupName === "bank") return description.includes("bank");
+        if (groupName === "fornalha") return ["teto", "piso", "parede"].some((term) => description.includes(term));
+        if (groupName === "pav") return description.includes("pav");
+        return true;
+      });
+      return matches.length ? matches : itemTasks;
+    });
+    const renderGroup = (group, explicitTasks = null) => {
+      const visibleTasks = explicitTasks || tasksForVisualGroup(group);
+      if (!visibleTasks.length) return "";
       return `
-      <section class="visual-group${visibleItems.length === 1 ? " single-item" : ""}">
+      <section class="visual-group${visibleTasks.length === 1 ? " single-item" : ""}">
         <strong>${escapeHtml(visualTitle(group.title))}</strong>
         <div>
-          ${visibleItems.map((item) => {
-            const itemTasks = byItem[item] || [];
-            const itemState = visualItemState(itemTasks);
-            const task = itemTasks[0];
-            return `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(`${item} - ${task.descricao}`)}">${item}</button>`;
+          ${visibleTasks.map((task) => {
+            const itemState = taskStatus(taskMetrics(task), task).key;
+            const item = normalize(task.item);
+            const accessibleLabel = `Item ${item}: ${task.descricao}`;
+            return `<button type="button" class="visual-item ${itemState}" data-open-id="${task.id}" title="${escapeHtml(accessibleLabel)}" aria-label="${escapeHtml(accessibleLabel)}">${escapeHtml(item)}</button>`;
           }).join("")}
         </div>
       </section>
@@ -415,13 +437,16 @@
     const unmappedByEquipment = current.reduce((groups, task) => {
       if (identifiedItems.has(normalize(task.item))) return groups;
       const equipment = normalize(task.equipamento) || "Sem equipamento";
-      if (!groups[equipment]) groups[equipment] = new Set();
-      groups[equipment].add(normalize(task.item));
+      if (!groups[equipment]) groups[equipment] = [];
+      groups[equipment].push(task);
       return groups;
     }, {});
-    const peripheralHtmlByTitle = Object.fromEntries(Object.entries(unmappedByEquipment).map(([title, items]) => [
+    const peripheralHtmlByTitle = Object.fromEntries(Object.entries(unmappedByEquipment).map(([title, equipmentTasks]) => [
       normalize(title).toLocaleUpperCase("pt-BR"),
-      renderGroup({ title, items: [...items].sort((a, b) => Number(a) - Number(b)) })
+      renderGroup(
+        { title, items: [] },
+        equipmentTasks.sort((a, b) => Number(a.item) - Number(b.item) || a.id - b.id)
+      )
     ]));
     $("#visualUnmapped").innerHTML = [
       ["B-1251", "D-1207", "D-1247", "TB-1251"],
@@ -587,10 +612,21 @@
     $("#taskRows").innerHTML = visible.map((task) => {
       const metrics = taskMetrics(task);
       const status = taskStatus(metrics, task);
+      const executionValue = normalize(task.executante) || "Não informado";
+      const executionStatus = keyText(executionValue) === "conc"
+        ? "clear"
+        : keyText(executionValue) === "canc"
+          ? "canceled"
+          : keyText(executionValue) === "and"
+            ? "progress"
+            : keyText(executionValue) === "pend"
+              ? "pending"
+              : "other";
       return `<article class="task-row">
         <div class="cell-primary"><strong>${escapeHtml(task.tag)}</strong><span>${escapeHtml(task.equipamento)}</span></div>
         <div class="cell-description"><strong>Item #${escapeHtml(task.item)}${photoTaskIds.has(task.id) ? '<span class="photo-badge">Foto</span>' : ""}</strong><span title="${escapeHtml(task.descricao)}">${escapeHtml(task.descricao)}</span></div>
         <div class="task-owner">${escapeHtml(normalize(task.responsavel) || "Não informado")}</div>
+        <span class="pill ${executionStatus}">${escapeHtml(executionValue)}</span>
         <div class="check-count">${metrics.pending} pend. / ${metrics.applicable} ativos</div>
         <span class="pill ${status.key}">${status.label}</span>
         <button class="row-action" data-open-id="${task.id}" aria-label="Abrir tarefa">›</button>
@@ -620,12 +656,23 @@
         <span>${escapeHtml(task.equipamento || entry.equipamento || "")}</span>
         <span>${escapeHtml(labels[entry.field] || entry.field)}</span>
         <span class="pill ${entry.status === "CANC" ? "canceled" : "clear"}">${escapeHtml(entry.status)}</span>
+        <span>${escapeHtml(entry.observation || "")}</span>
         <span>${date.toLocaleDateString("pt-BR")}</span>
         <span>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
         <strong>${escapeHtml(entry.user)}</strong>
       </article>`;
     }).join("");
     $("#reportEmpty").hidden = entries.length !== 0;
+  }
+
+  function printReport() {
+    if (!$("#reportRows").children.length) {
+      showToast("Não há registros para imprimir.");
+      return;
+    }
+    document.documentElement.classList.add("print-report");
+    document.body.classList.add("print-report");
+    window.print();
   }
 
   async function openTask(id) {
@@ -825,12 +872,13 @@
         completionAudit[field] = { user: currentUser, at };
         reportEntries.push({
           taskId: original.id, item: original.item, equipamento: original.equipamento,
-          field, status: "CONC", user: currentUser, at
+          field, status: "CONC", observation: field === "executante" ? "Aguardando CQ" : "",
+          user: currentUser, at
         });
       } else if (keyText(nextValue) === "canc" && keyText(previousValue) !== "canc") {
         reportEntries.push({
           taskId: original.id, item: original.item, equipamento: original.equipamento,
-          field, status: "CANC", user: currentUser, at: new Date().toISOString()
+          field, status: "CANC", observation: "", user: currentUser, at: new Date().toISOString()
         });
       } else if (keyText(nextValue) !== "conc" && keyText(previousValue) === "conc") {
         delete completionAudit[field];
@@ -974,6 +1022,11 @@
     $("#nextPage").addEventListener("click", () => { state.page++; renderTasks(); });
     $("#exportButton").addEventListener("click", exportCsv);
     $("#printVisualButton").addEventListener("click", () => window.print());
+    $("#printReportButton").addEventListener("click", printReport);
+    window.addEventListener("afterprint", () => {
+      document.documentElement.classList.remove("print-report");
+      document.body.classList.remove("print-report");
+    });
     $("#loginButton").addEventListener("click", openLogin);
     $("#logoutButton").addEventListener("click", logout);
     $("#closeLogin").addEventListener("click", () => $("#loginDialog").close());

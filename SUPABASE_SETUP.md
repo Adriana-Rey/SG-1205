@@ -2,7 +2,10 @@
 
 1. Crie um projeto em <https://supabase.com>.
 2. No SQL Editor, execute `supabase-schema.sql`.
-3. Depois execute `supabase-seed.sql` para importar os 149 itens de `data.js`.
+3. Depois execute `supabase-seed.sql` para importar os 152 itens de `data.js`.
+   A carga de 12/06/2026 também adiciona a coluna `observacao` ao histórico,
+   preserva os IDs das tarefas existentes e remove somente os registros que
+   foram desdobrados na nova planilha.
 4. Em **Project Settings > API**, copie:
    - Project URL
    - Publishable/anon key
