@@ -353,6 +353,7 @@
     const pendingTasks = statuses.filter((item) => item.key === "pending").length;
     const clearTasks = statuses.filter((item) => item.key === "clear").length;
     const canceledTasks = statuses.filter((item) => item.key === "canceled").length;
+    const inProgressTasks = statuses.filter((item) => item.key === "progress").length;
     const otherTasks = current.filter((task) =>
       !primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
     ).length;
@@ -364,13 +365,14 @@
     const progress = totalActive ? Math.round((completedChecks / totalActive) * 100) : 0;
     const pendingDegrees = totalActive ? (pendingChecks / totalActive) * 360 : 0;
     const completedDegrees = totalActive ? (completedChecks / totalActive) * 360 : 0;
-    $("#totalTasks").textContent = current.length;
+    $("#totalTasks").textContent = progressTasks.length;
     $("#navTaskCount").textContent = current.length;
-    $("#totalTags").textContent = `${unique("tag").length} TAGs mapeadas`;
+    $("#totalTags").textContent = `${progressTasks.length} itens no resumo`;
     $("#pendingTasks").textContent = pendingTasks;
-    $("#pendingRate").textContent = `${Math.round((pendingTasks / current.length) * 100)}% da base`;
+    $("#pendingRate").textContent = `${progressTasks.length ? Math.round((pendingTasks / progressTasks.length) * 100) : 0}% dos itens`;
     $("#clearTasks").textContent = clearTasks;
     $("#canceledTasks").textContent = canceledTasks;
+    $("#progressTasks").textContent = inProgressTasks;
     $("#otherTasks").textContent = otherTasks;
     $("#progressPercent").textContent = `${progress}%`;
     $("#progressPending").textContent = pendingChecks;

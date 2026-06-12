@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260612-113">
+  <link rel="stylesheet" href="styles.css?v=20260612-115">
 </head>
 <body>
   <div class="app-shell">
@@ -86,22 +86,27 @@
           <article class="kpi-card">
             <span class="kpi-icon blue">☷</span>
             <div><span>Total</span><strong id="totalTasks">0</strong></div>
-            <small id="totalTags">0 TAGs mapeadas</small>
+            <small id="totalTags">0 itens no resumo</small>
           </article>
           <article class="kpi-card">
             <span class="kpi-icon red">!</span>
             <div><span>Pendente</span><strong id="pendingTasks">0</strong></div>
-            <small id="pendingRate">0% da base</small>
+            <small id="pendingRate">0% dos itens</small>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-icon blue">→</span>
+            <div><span>Andamento</span><strong id="progressTasks">0</strong></div>
+            <small>Itens em andamento</small>
           </article>
           <article class="kpi-card">
             <span class="kpi-icon green">✓</span>
             <div><span>Concluído</span><strong id="clearTasks">0</strong></div>
-            <small>Tarefas concluídas</small>
+            <small>Itens concluídos</small>
           </article>
           <article class="kpi-card">
             <span class="kpi-icon amber">×</span>
             <div><span>Cancelado</span><strong id="canceledTasks">0</strong></div>
-            <small>Tarefas canceladas</small>
+            <small>Itens cancelados</small>
           </article>
           <article class="kpi-card">
             <span class="kpi-icon violet">+</span>
@@ -352,9 +357,9 @@
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="data.js?v=20260612-113"></script>
+  <script src="data.js?v=20260612-115"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabaseClient.js?v=20260612-113"></script>
-  <script src="app.js?v=20260612-113"></script>
+  <script src="supabaseClient.js?v=20260612-115"></script>
+  <script src="app.js?v=20260612-115"></script>
 </body>
 </html>
