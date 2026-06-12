@@ -143,8 +143,10 @@ h1 { font-size: 25px; }
 .bar-chart { display: grid; gap: 13px; }
 .control-distribution { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
 .control-group { min-width: 0; height: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd; }
-.control-group-execucao, .control-group-producao { grid-column: span 2; }
-.control-group-qualidade, .control-group-integridade { align-self: stretch; }
+.control-group-execucao { grid-column: 1 / -1; grid-row: 1; }
+.control-group-qualidade { grid-column: 1; grid-row: 2; align-self: stretch; }
+.control-group-integridade { grid-column: 2; grid-row: 2; align-self: stretch; }
+.control-group-producao { grid-column: 1 / -1; grid-row: 3; }
 .control-group header { margin-bottom: 15px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .control-group header strong { color: #263449; font-size: 12px; }
 .control-group header span { color: #8995a5; font-size: 9px; }
@@ -423,7 +425,10 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   .checks-grid { grid-template-columns: repeat(2, 1fr); }
   .priority-groups { grid-template-columns: 1fr; }
   .control-distribution { grid-template-columns: 1fr; }
-  .control-group-execucao, .control-group-producao { grid-column: span 1; }
+  .control-group-execucao,
+  .control-group-qualidade,
+  .control-group-integridade,
+  .control-group-producao { grid-column: 1; grid-row: auto; }
   .equipment-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .owner-list { grid-template-columns: 1fr; }
   .visual-unmapped .visual-card-grid,
