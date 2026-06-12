@@ -574,7 +574,7 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   body.print-report #reportView {
     display: block !important;
     page: report-page;
-    width: 100%; height: auto; overflow: visible;
+    width: 190mm; max-width: 190mm; height: auto; margin: 0 auto; overflow: visible;
   }
   body.print-report #reportView::before {
     content: "Histórico de Avanço";
@@ -583,24 +583,25 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   }
   body.print-report .table-card { display: none !important; }
   body.print-report .print-report-table {
-    display: table; width: 100%; border-collapse: collapse;
-    table-layout: fixed; color: #303a49; font-size: 8pt;
+    display: table; width: 190mm; max-width: 190mm; border-collapse: collapse;
+    table-layout: fixed; color: #303a49; font-size: 7pt; line-height: 1.25;
   }
   body.print-report .print-report-table thead { display: table-header-group; }
   body.print-report .print-report-table tbody { display: table-row-group; }
   body.print-report .print-report-table tr { break-inside: avoid; }
   body.print-report .print-report-table th,
   body.print-report .print-report-table td {
-    padding: 2mm; border: .25mm solid #cfd5de;
-    overflow-wrap: anywhere; text-align: center; vertical-align: middle;
+    padding: 1.5mm 1mm; border: .25mm solid #cfd5de;
+    overflow-wrap: break-word; word-break: normal; text-align: center; vertical-align: middle;
   }
   body.print-report .print-report-table th {
-    background: #e9edf2; font-size: 7.5pt; text-transform: uppercase;
+    background: #e9edf2; font-size: 6.5pt; line-height: 1.15;
+    overflow-wrap: normal; word-break: keep-all; text-transform: uppercase;
   }
-  body.print-report .print-report-table th:nth-child(1) { width: 15mm; }
-  body.print-report .print-report-table th:nth-child(2) { width: 27mm; }
-  body.print-report .print-report-table th:nth-child(3) { width: 20mm; }
-  body.print-report .print-report-table th:nth-child(4) { width: 29mm; }
-  body.print-report .print-report-table th:nth-child(5) { width: 19mm; }
-  body.print-report .print-report-table th:nth-child(6) { width: 18mm; }
+  body.print-report .print-report-table th:nth-child(1) { width: 14mm; }
+  body.print-report .print-report-table th:nth-child(2) { width: 28mm; }
+  body.print-report .print-report-table th:nth-child(3) { width: 24mm; }
+  body.print-report .print-report-table th:nth-child(4) { width: 31mm; }
+  body.print-report .print-report-table th:nth-child(5) { width: 18mm; }
+  body.print-report .print-report-table th:nth-child(6) { width: 17mm; }
 }
