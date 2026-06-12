@@ -704,7 +704,84 @@
       showToast("Não há registros para imprimir.");
       return;
     }
-    preparePrintMode("report");
+    const printFrame = document.createElement("iframe");
+    printFrame.setAttribute("title", "Impressão do Histórico de Avanço");
+    printFrame.style.cssText = "position:fixed;width:1px;height:1px;right:0;bottom:0;border:0;opacity:0;pointer-events:none";
+    document.body.append(printFrame);
+
+    const logoUrl = new URL("assets/gcb-logo.svg", window.location.href).href;
+    const tableHtml = $("#printReportTable").outerHTML;
+    const printDocument = printFrame.contentDocument;
+    printDocument.open();
+    printDocument.write(`<!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Histórico de Avanço</title>
+          <style>
+            @page { size: A4 portrait; margin: 10mm; }
+            * { box-sizing: border-box; }
+            html, body {
+              width: 210mm; margin: 0; padding: 0; color: #303a49;
+              background: white; font-family: Arial, sans-serif;
+              -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+              print-color-adjust: exact; -webkit-print-color-adjust: exact;
+            }
+            main { width: 190mm; margin: 0 auto; }
+            header {
+              min-height: 15mm; margin: 0 0 5mm; display: flex;
+              align-items: center; gap: 5mm; break-inside: avoid;
+            }
+            header img { width: 43mm; height: auto; max-height: 14mm; object-fit: contain; }
+            header strong { color: #18212f; font-size: 16pt; }
+            table {
+              display: table; width: 190mm; border-collapse: collapse;
+              table-layout: fixed; font-size: 7pt; line-height: 1.25;
+            }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
+            tr { break-inside: avoid; page-break-inside: avoid; }
+            th, td {
+              padding: 1.5mm 1mm; border: .25mm solid #cfd5de;
+              overflow-wrap: break-word; word-break: normal;
+              text-align: center; vertical-align: middle;
+            }
+            th {
+              background: #e9edf2; font-size: 6.5pt; line-height: 1.15;
+              overflow-wrap: normal; text-transform: uppercase;
+            }
+            th:nth-child(1) { width: 14mm; }
+            th:nth-child(2) { width: 28mm; }
+            th:nth-child(3) { width: 24mm; }
+            th:nth-child(4) { width: 31mm; }
+            th:nth-child(5) { width: 18mm; }
+            th:nth-child(6) { width: 17mm; }
+          </style>
+        </head>
+        <body>
+          <main>
+            <header>
+              <img src="${logoUrl}" alt="GCB Manutenção Industrial">
+              <strong>Histórico de Avanço</strong>
+            </header>
+            ${tableHtml}
+          </main>
+        </body>
+      </html>`);
+    printDocument.close();
+
+    const removeFrame = () => setTimeout(() => printFrame.remove(), 500);
+    printFrame.contentWindow.addEventListener("afterprint", removeFrame, { once: true });
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch {
+        printFrame.remove();
+        showToast("Não foi possível abrir a impressão do relatório.");
+      }
+    }, 350);
   }
 
   async function preparePrintMode(mode) {
