@@ -89,6 +89,7 @@
   let realtimeTimer = null;
   let fallbackPhotos = [];
   let photoTaskIds = new Set();
+  let activePrintMode = null;
   let currentPhotos = [];
   let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
 
@@ -702,9 +703,32 @@
       showToast("Não há registros para imprimir.");
       return;
     }
-    document.documentElement.classList.add("print-report");
-    document.body.classList.add("print-report");
+    preparePrintMode("report");
+  }
+
+  function preparePrintMode(mode) {
+    activePrintMode = mode;
+    applyPrintMode();
+    void document.body.offsetHeight;
     window.print();
+  }
+
+  function applyPrintMode() {
+    const isReport = activePrintMode === "report";
+    document.documentElement.classList.toggle("print-visual", !isReport);
+    document.documentElement.classList.toggle("print-report", isReport);
+    document.body.classList.toggle("print-visual", !isReport);
+    document.body.classList.toggle("print-report", isReport);
+    $("#visualView").style.setProperty("display", isReport ? "none" : "grid", "important");
+    $("#reportView").style.setProperty("display", isReport ? "block" : "none", "important");
+  }
+
+  function clearPrintMode() {
+    activePrintMode = null;
+    document.documentElement.classList.remove("print-report", "print-visual");
+    document.body.classList.remove("print-report", "print-visual");
+    $("#visualView").style.removeProperty("display");
+    $("#reportView").style.removeProperty("display");
   }
 
   async function openTask(id) {
@@ -1064,12 +1088,12 @@
     $("#prevPage").addEventListener("click", () => { state.page--; renderTasks(); });
     $("#nextPage").addEventListener("click", () => { state.page++; renderTasks(); });
     $("#exportButton").addEventListener("click", exportCsv);
-    $("#printVisualButton").addEventListener("click", () => window.print());
+    $("#printVisualButton").addEventListener("click", () => preparePrintMode("visual"));
     $("#printReportButton").addEventListener("click", printReport);
-    window.addEventListener("afterprint", () => {
-      document.documentElement.classList.remove("print-report");
-      document.body.classList.remove("print-report");
+    window.addEventListener("beforeprint", () => {
+      if (activePrintMode) applyPrintMode();
     });
+    window.addEventListener("afterprint", clearPrintMode);
     $("#loginButton").addEventListener("click", openLogin);
     $("#logoutButton").addEventListener("click", logout);
     $("#closeLogin").addEventListener("click", () => $("#loginDialog").close());
