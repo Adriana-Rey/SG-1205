@@ -687,6 +687,7 @@
       return `<tr>
         <td>#${escapeHtml(task.item || entry.item || "")}</td>
         <td>${escapeHtml(task.equipamento || entry.equipamento || "")}</td>
+        <td>${escapeHtml(entry.status)}</td>
         <td>${escapeHtml(entry.user)}</td>
         <td>${date.toLocaleDateString("pt-BR")}</td>
         <td>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
