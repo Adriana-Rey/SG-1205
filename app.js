@@ -90,6 +90,7 @@
   let fallbackPhotos = [];
   let photoTaskIds = new Set();
   let activePrintMode = null;
+  let printPageStyle = null;
   let currentPhotos = [];
   let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
 
@@ -715,6 +716,14 @@
 
   function applyPrintMode() {
     const isReport = activePrintMode === "report";
+    if (!printPageStyle) {
+      printPageStyle = document.createElement("style");
+      printPageStyle.id = "activePrintPageStyle";
+      document.head.append(printPageStyle);
+    }
+    printPageStyle.textContent = isReport
+      ? "@page { size: A4 portrait; margin: 10mm; }"
+      : "@page { size: A3 landscape; margin: 5mm; }";
     document.documentElement.classList.toggle("print-visual", !isReport);
     document.documentElement.classList.toggle("print-report", isReport);
     document.body.classList.toggle("print-visual", !isReport);
@@ -725,6 +734,10 @@
 
   function clearPrintMode() {
     activePrintMode = null;
+    if (printPageStyle) {
+      printPageStyle.remove();
+      printPageStyle = null;
+    }
     document.documentElement.classList.remove("print-report", "print-visual");
     document.body.classList.remove("print-report", "print-visual");
     $("#visualView").style.removeProperty("display");

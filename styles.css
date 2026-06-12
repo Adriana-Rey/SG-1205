@@ -569,7 +569,16 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
 
   body.print-visual #reportView { display: none !important; }
   html.print-report,
-  body.print-report { width: auto; height: auto; overflow: visible; }
+  body.print-report {
+    width: 210mm !important; min-width: 210mm; max-width: 210mm;
+    height: auto; overflow: visible;
+  }
+  html.print-report { width: 210mm !important; min-width: 210mm; height: auto; overflow: visible; }
+  body.print-report .app-shell,
+  body.print-report .main {
+    width: 210mm !important; min-width: 210mm; max-width: 210mm;
+    height: auto; margin: 0; padding: 0;
+  }
   body.print-report .sidebar,
   body.print-report .topbar,
   body.print-report #dashboardView,
