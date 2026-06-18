@@ -105,8 +105,10 @@
       return (data || []).map(normalizeItem);
     },
 
-    async loadEdits() {
-      const { data, error } = await client.from("alteracoes_sg1205").select("*");
+    async loadEdits(since) {
+      let query = client.from("alteracoes_sg1205").select("*");
+      if (since) query = query.gte("atualizado_em", since);
+      const { data, error } = await query;
       if (error) throw error;
       return Object.fromEntries((data || []).map((row) => [
         Number(row.item_id),
@@ -136,11 +138,13 @@
       if (error) throw error;
     },
 
-    async loadHistory() {
-      const { data, error } = await client.from("historico_sg1205")
+    async loadHistory(since) {
+      let query = client.from("historico_sg1205")
         .select("*")
         .order("criado_em", { ascending: false })
         .limit(5000);
+      if (since) query = query.gte("criado_em", since);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row) => ({
         taskId: Number(row.item_id),
@@ -258,8 +262,10 @@
       return (data || []).map(mapPhoto);
     },
 
-    async loadPhotoTaskIds() {
-      const { data, error } = await client.from("fotos_sg1205").select("item_id");
+    async loadPhotoTaskIds(since) {
+      let query = client.from("fotos_sg1205").select("item_id,criado_em");
+      if (since) query = query.gte("criado_em", since);
+      const { data, error } = await query;
       if (error) throw error;
       return new Set((data || []).map((row) => Number(row.item_id)));
     },

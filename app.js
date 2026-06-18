@@ -122,6 +122,17 @@
     return reportEntriesCache;
   }
 
+  function remoteResetAt() {
+    return metadata.resetAt || (metadata.exportedAt ? `${metadata.exportedAt}T00:00:00` : "");
+  }
+
+  function reportObservation(entry) {
+    if (keyText(entry.field) === "executante" && keyText(entry.status) === "conc") {
+      return entry.observation || "Aguardando CQ";
+    }
+    return entry.observation || "";
+  }
+
   async function appendReportEntries(entries) {
     if (!entries.length) return;
     if (onlineMode) await supabaseApi.appendHistory(entries);
@@ -672,12 +683,13 @@
     $("#reportRows").innerHTML = entries.map((entry) => {
       const task = taskById.get(entry.taskId) || {};
       const date = new Date(entry.at);
+      const observation = reportObservation(entry);
       return `<article class="report-row">
         <strong>#${escapeHtml(task.item || entry.item || "")}</strong>
         <span>${escapeHtml(task.equipamento || entry.equipamento || "")}</span>
         <span>${escapeHtml(labels[entry.field] || entry.field)}</span>
         <span class="pill ${entry.status === "CANC" ? "canceled" : "clear"}">${escapeHtml(entry.status)}</span>
-        <span>${escapeHtml(entry.observation || "")}</span>
+        <span>${escapeHtml(observation)}</span>
         <span>${date.toLocaleDateString("pt-BR")}</span>
         <span>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
         <strong>${escapeHtml(entry.user)}</strong>
@@ -686,6 +698,7 @@
     $("#printReportRows").innerHTML = entries.map((entry) => {
       const task = taskById.get(entry.taskId) || {};
       const date = new Date(entry.at);
+      const observation = reportObservation(entry);
       return `<tr>
         <td>#${escapeHtml(task.item || entry.item || "")}</td>
         <td>${escapeHtml(task.equipamento || entry.equipamento || "")}</td>
@@ -693,7 +706,7 @@
         <td>${escapeHtml(entry.user)}</td>
         <td>${date.toLocaleDateString("pt-BR")}</td>
         <td>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
-        <td>${escapeHtml(entry.observation || "")}</td>
+        <td>${escapeHtml(observation)}</td>
       </tr>`;
     }).join("");
     $("#reportEmpty").hidden = entries.length !== 0;
@@ -896,7 +909,7 @@
 
   async function loadPhotoTaskIds() {
     photoTaskIds = onlineMode
-      ? await supabaseApi.loadPhotoTaskIds()
+      ? await supabaseApi.loadPhotoTaskIds(remoteResetAt())
       : new Set(fallbackPhotos.map((photo) => photo.taskId));
   }
 
@@ -1271,9 +1284,9 @@
     if (!onlineMode) return;
     const [remoteItems, remoteEdits, remoteHistory, remotePhotoIds] = await Promise.all([
       reloadItems ? supabaseApi.loadItems() : Promise.resolve(tasks),
-      supabaseApi.loadEdits(),
-      supabaseApi.loadHistory(),
-      supabaseApi.loadPhotoTaskIds()
+      supabaseApi.loadEdits(remoteResetAt()),
+      supabaseApi.loadHistory(remoteResetAt()),
+      supabaseApi.loadPhotoTaskIds(remoteResetAt())
     ]);
     if (remoteItems.length) {
       const remoteByIdentity = new Map(remoteItems.map((task) => [taskIdentity(task), task]));
