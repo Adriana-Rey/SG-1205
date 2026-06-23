@@ -368,6 +368,17 @@
     return { key: "pending", label: "Pendente" };
   }
 
+  function taskMatchesStatus(task, metrics, status) {
+    if (!status) return true;
+    if (status === "canceled") {
+      return metrics.canceled > 0
+        && metrics.pending === 0
+        && metrics.inProgress === 0
+        && metrics.completed === 0;
+    }
+    return taskStatus(metrics, task).key === status;
+  }
+
   function unique(field) {
     return [...new Set(tasks.map((task) => normalize(mergedTask(task)[field])).filter(Boolean))]
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -406,7 +417,7 @@
         && (!state.equipment || normalize(task.equipamento) === state.equipment)
         && (!state.area || normalize(task.cq) === state.area)
         && (!state.owner || normalize(task.responsavel) === state.owner)
-        && (!state.status || taskStatus(metrics, task).key === state.status);
+        && taskMatchesStatus(task, metrics, state.status);
     });
   }
 
