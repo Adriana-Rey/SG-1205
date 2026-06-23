@@ -648,13 +648,13 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
   }
   body.print-report .print-report-table th {
     background: #e9edf2; font-size: 6.5pt; line-height: 1.15;
-    overflow-wrap: normal; word-break: keep-all; text-transform: uppercase;
+    overflow-wrap: anywhere; word-break: normal; hyphens: auto; text-transform: uppercase;
   }
   body.print-report .print-report-table th:nth-child(1) { width: 13mm; }
   body.print-report .print-report-table th:nth-child(2) { width: 25mm; }
   body.print-report .print-report-table th:nth-child(3) { width: 20mm; }
-  body.print-report .print-report-table th:nth-child(4) { width: 13mm; }
-  body.print-report .print-report-table th:nth-child(5) { width: 28mm; }
+  body.print-report .print-report-table th:nth-child(4) { width: 16mm; }
+  body.print-report .print-report-table th:nth-child(5) { width: 25mm; }
   body.print-report .print-report-table th:nth-child(6) { width: 16mm; }
   body.print-report .print-report-table th:nth-child(7) { width: 26mm; }
 }

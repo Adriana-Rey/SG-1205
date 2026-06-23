@@ -835,13 +835,13 @@
             }
             th {
               background: #e9edf2; font-size: 6.5pt; line-height: 1.15;
-              overflow-wrap: normal; text-transform: uppercase;
+              overflow-wrap: anywhere; word-break: normal; hyphens: auto; text-transform: uppercase;
             }
             th:nth-child(1) { width: 13mm; }
             th:nth-child(2) { width: 25mm; }
             th:nth-child(3) { width: 20mm; }
-            th:nth-child(4) { width: 13mm; }
-            th:nth-child(5) { width: 28mm; }
+            th:nth-child(4) { width: 16mm; }
+            th:nth-child(5) { width: 25mm; }
             th:nth-child(6) { width: 16mm; }
             th:nth-child(7) { width: 26mm; }
           </style>
