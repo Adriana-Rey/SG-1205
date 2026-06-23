@@ -126,7 +126,7 @@
   }
 
   function loadReport() {
-    return reportEntriesCache;
+    return [...reportEntriesCache, ...currentEditReportEntries()];
   }
 
   function remoteResetAt() {
@@ -148,6 +148,38 @@
     if (key === "pend") return "pending";
     if (key === "n.a") return "unavailable";
     return "other";
+  }
+
+  function currentEditReportEntries() {
+    const existing = new Set(reportEntriesCache.map((entry) => [
+      Number(entry.taskId),
+      keyText(entry.field),
+      keyText(entry.status)
+    ].join("|")));
+    return Object.entries(edits).flatMap(([taskId, edit]) => {
+      const original = tasks.find((task) => Number(task.id) === Number(taskId));
+      if (!original || !edit.__updatedAt) return [];
+      return progressFields.flatMap(([field]) => {
+        if (!(field in edit)) return [];
+        const statusKey = keyText(edit[field]);
+        if (!reportStatusLabels.has(statusKey)) return [];
+        if (keyText(original[field]) === statusKey) return [];
+        const status = reportStatusLabels.get(statusKey);
+        const uniqueKey = [Number(taskId), keyText(field), keyText(status)].join("|");
+        if (existing.has(uniqueKey)) return [];
+        return [{
+          taskId: Number(taskId),
+          item: original.item,
+          equipamento: original.equipamento,
+          field,
+          status,
+          observation: field === "executante" && statusKey === "conc" ? "Aguardando CQ" : edit.observacao || "",
+          user: edit.__user || "Supabase",
+          at: edit.__updatedAt,
+          derived: true
+        }];
+      });
+    });
   }
 
   async function appendReportEntries(entries) {
@@ -1044,7 +1076,9 @@
     const reportEntries = [];
     const update = {
       observacao: executionOnly ? (previous.observacao || "") : $("#dialogObservation").value.trim(),
-      completionAudit
+      completionAudit,
+      __user: currentUser,
+      __updatedAt: new Date().toISOString()
     };
     $$("[data-check-field]").forEach((select) => {
       const field = select.dataset.checkField;
@@ -1317,8 +1351,7 @@
         return {
           ...fallbackTask,
           ...(remoteTask || {}),
-          id: fallbackTask.id,
-          executante: fallbackTask.executante
+          id: fallbackTask.id
         };
       });
     }

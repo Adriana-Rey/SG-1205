@@ -115,13 +115,15 @@
         {
           ...(row.dados || {}),
           observacao: row.observacao || "",
-          completionAudit: row.auditoria_conclusao || {}
+          completionAudit: row.auditoria_conclusao || {},
+          __user: row.usuario || "",
+          __updatedAt: row.atualizado_em || ""
         }
       ]));
     },
 
     async saveEdit(taskId, update, username) {
-      const { observacao = "", completionAudit = {}, ...dados } = update;
+      const { observacao = "", completionAudit = {}, __user, __updatedAt, ...dados } = update;
       const { error } = await client.from("alteracoes_sg1205").upsert({
         item_id: Number(taskId),
         dados,
