@@ -840,10 +840,10 @@
             th:nth-child(1) { width: 13mm; }
             th:nth-child(2) { width: 25mm; }
             th:nth-child(3) { width: 20mm; }
-            th:nth-child(4) { width: 18mm; }
+            th:nth-child(4) { width: 13mm; }
             th:nth-child(5) { width: 28mm; }
             th:nth-child(6) { width: 16mm; }
-            th:nth-child(7) { width: 16mm; }
+            th:nth-child(7) { width: 26mm; }
           </style>
         </head>
         <body>
