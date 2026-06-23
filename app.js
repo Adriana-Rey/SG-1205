@@ -764,6 +764,7 @@
       return `<tr>
         <td>#${escapeHtml(task.item || entry.item || "")}</td>
         <td>${escapeHtml(task.equipamento || entry.equipamento || "")}</td>
+        <td>${escapeHtml(labels[entry.field] || entry.field)}</td>
         <td>${escapeHtml(entry.status)}</td>
         <td>${escapeHtml(entry.user)}</td>
         <td>${date.toLocaleDateString("pt-BR")}</td>
