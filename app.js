@@ -791,6 +791,8 @@
     }
     const printFrame = document.createElement("iframe");
     const fileTitle = printFileTitle("Relatório de Avanço");
+    originalDocumentTitle = document.title;
+    document.title = fileTitle;
     printFrame.setAttribute("title", fileTitle);
     printFrame.style.cssText = "position:fixed;width:1px;height:1px;right:0;bottom:0;border:0;opacity:0;pointer-events:none";
     document.body.append(printFrame);
@@ -858,7 +860,10 @@
       </html>`);
     printDocument.close();
 
-    const removeFrame = () => setTimeout(() => printFrame.remove(), 500);
+    const removeFrame = () => setTimeout(() => {
+      printFrame.remove();
+      document.title = originalDocumentTitle || "Controle de Atividades";
+    }, 500);
     printFrame.contentWindow.addEventListener("afterprint", removeFrame, { once: true });
     setTimeout(() => {
       try {
@@ -866,6 +871,7 @@
         printFrame.contentWindow.print();
       } catch {
         printFrame.remove();
+        document.title = originalDocumentTitle || "Controle de Atividades";
         showToast("Não foi possível abrir a impressão do relatório.");
       }
     }, 350);
