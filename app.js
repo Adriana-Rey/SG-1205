@@ -98,6 +98,7 @@
   let photoTaskIds = new Set();
   let activePrintMode = null;
   let printPageStyle = null;
+  let originalDocumentTitle = document.title;
   let currentPhotos = [];
   let state = { view: "dashboard", search: "", tag: "", equipment: "", area: "", owner: "", status: "", reportDate: "", page: 1, currentId: null };
 
@@ -148,6 +149,14 @@
     if (key === "pend") return "pending";
     if (key === "n.a") return "unavailable";
     return "other";
+  }
+
+  function selectedPrintDate() {
+    return state.reportDate || new Date().toLocaleDateString("en-CA");
+  }
+
+  function printFileTitle(prefix) {
+    return `${prefix} ${selectedPrintDate()}`;
   }
 
   function currentEditReportEntries() {
@@ -781,7 +790,8 @@
       return;
     }
     const printFrame = document.createElement("iframe");
-    printFrame.setAttribute("title", "Impressão do Histórico de Avanço");
+    const fileTitle = printFileTitle("Relatório de Avanço");
+    printFrame.setAttribute("title", fileTitle);
     printFrame.style.cssText = "position:fixed;width:1px;height:1px;right:0;bottom:0;border:0;opacity:0;pointer-events:none";
     document.body.append(printFrame);
 
@@ -794,7 +804,7 @@
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Histórico de Avanço</title>
+          <title>${escapeHtml(fileTitle)}</title>
           <style>
             @page { size: A4 portrait; margin: 10mm; }
             * { box-sizing: border-box; }
@@ -827,12 +837,13 @@
               background: #e9edf2; font-size: 6.5pt; line-height: 1.15;
               overflow-wrap: normal; text-transform: uppercase;
             }
-            th:nth-child(1) { width: 14mm; }
-            th:nth-child(2) { width: 28mm; }
-            th:nth-child(3) { width: 24mm; }
-            th:nth-child(4) { width: 31mm; }
-            th:nth-child(5) { width: 18mm; }
-            th:nth-child(6) { width: 17mm; }
+            th:nth-child(1) { width: 13mm; }
+            th:nth-child(2) { width: 25mm; }
+            th:nth-child(3) { width: 20mm; }
+            th:nth-child(4) { width: 18mm; }
+            th:nth-child(5) { width: 28mm; }
+            th:nth-child(6) { width: 16mm; }
+            th:nth-child(7) { width: 16mm; }
           </style>
         </head>
         <body>
@@ -862,6 +873,10 @@
 
   async function preparePrintMode(mode) {
     activePrintMode = mode;
+    originalDocumentTitle = document.title;
+    document.title = mode === "visual"
+      ? printFileTitle("Acompanhamento Visual")
+      : printFileTitle("Relatório de Avanço");
     applyPrintMode();
     void document.body.offsetHeight;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -888,6 +903,7 @@
 
   function clearPrintMode() {
     activePrintMode = null;
+    document.title = originalDocumentTitle || "Controle de Atividades";
     if (printPageStyle) {
       printPageStyle.remove();
       printPageStyle = null;
