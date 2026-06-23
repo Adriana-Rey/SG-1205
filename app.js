@@ -23,6 +23,13 @@
     ["lv", "LV"], ["producao", "PRODUÇÃO"]
   ];
   const statusOptions = ["CONC", "PEND", "AND", "N.A", "CANC"];
+  const reportStatusLabels = new Map([
+    ["conc", "CONC"],
+    ["pend", "PEND"],
+    ["and", "AND"],
+    ["n.a", "N.A"],
+    ["canc", "CANC"]
+  ]);
   const numericControlFields = new Set(["petp", "ieis", "planoTorque"]);
   const progressFields = checkFields.filter(([field]) => !numericControlFields.has(field));
   const primaryOwners = new Set(["AMILTON", "EDILSON", "MINEIRO"]);
@@ -131,6 +138,16 @@
       return entry.observation || "Aguardando CQ";
     }
     return entry.observation || "";
+  }
+
+  function reportStatusClass(status) {
+    const key = keyText(status);
+    if (key === "canc") return "canceled";
+    if (key === "and") return "progress";
+    if (key === "conc") return "clear";
+    if (key === "pend") return "pending";
+    if (key === "n.a") return "unavailable";
+    return "other";
   }
 
   async function appendReportEntries(entries) {
@@ -406,12 +423,14 @@
   }
 
   function renderVisualMarkers() {
-    const hasCanceledControl = (task) => progressFields.some(([field]) =>
-      keyText(task[field]) === "canc"
-    );
-    const visualTaskState = (task) => hasCanceledControl(task)
-      ? "canceled"
-      : taskStatus(taskMetrics(task), task).key;
+    const visualTaskState = (task) => {
+      const values = progressFields.map(([field]) => task[field]).map(keyText).filter(Boolean);
+      if (values.includes("canc")) return "canceled";
+      if (values.includes("and")) return "progress";
+      if (values.includes("pend")) return "pending";
+      if (values.includes("conc")) return "clear";
+      return taskStatus(taskMetrics(task), task).key;
+    };
     const current = tasks.map(mergedTask).filter((task) =>
       primaryOwners.has(normalize(task.responsavel).toLocaleUpperCase("pt-BR"))
     );
@@ -688,7 +707,7 @@
         <strong>#${escapeHtml(task.item || entry.item || "")}</strong>
         <span>${escapeHtml(task.equipamento || entry.equipamento || "")}</span>
         <span>${escapeHtml(labels[entry.field] || entry.field)}</span>
-        <span class="pill ${entry.status === "CANC" ? "canceled" : "clear"}">${escapeHtml(entry.status)}</span>
+        <span class="pill ${reportStatusClass(entry.status)}">${escapeHtml(entry.status)}</span>
         <span>${escapeHtml(observation)}</span>
         <span>${date.toLocaleDateString("pt-BR")}</span>
         <span>${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
@@ -1034,7 +1053,12 @@
       const previousValue = previous[field];
       update[field] = nextValue || previousValue;
       if (!nextValue) return;
-      if (keyText(nextValue) === "conc" && keyText(previousValue) !== "conc") {
+      const nextKey = keyText(nextValue);
+      const previousKey = keyText(previousValue);
+      if (previousKey === "conc" && nextKey !== "conc") {
+        delete completionAudit[field];
+      }
+      if (nextKey === "conc" && previousKey !== "conc") {
         const at = new Date().toISOString();
         completionAudit[field] = { user: currentUser, at };
         reportEntries.push({
@@ -1042,13 +1066,11 @@
           field, status: "CONC", observation: field === "executante" ? "Aguardando CQ" : "",
           user: currentUser, at
         });
-      } else if (keyText(nextValue) === "canc" && keyText(previousValue) !== "canc") {
+      } else if (reportStatusLabels.has(nextKey) && nextKey !== previousKey) {
         reportEntries.push({
           taskId: original.id, item: original.item, equipamento: original.equipamento,
-          field, status: "CANC", observation: "", user: currentUser, at: new Date().toISOString()
+          field, status: reportStatusLabels.get(nextKey), observation: "", user: currentUser, at: new Date().toISOString()
         });
-      } else if (keyText(nextValue) !== "conc" && keyText(previousValue) === "conc") {
-        delete completionAudit[field];
       }
     });
     try {

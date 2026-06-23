@@ -199,6 +199,7 @@ h1 { font-size: 25px; }
 .pill.clear { color: #13714e; background: var(--green-soft); }
 .pill.canceled { color: #956000; background: #fff3cf; }
 .pill.other { color: #5f6470; background: #edf0f4; }
+.pill.unavailable { color: #9b1c1c; background: #ffe4e4; font-weight: 800; }
 .equipment-row { display: grid; gap: 6px; }
 .equipment-label { display: flex; justify-content: space-between; color: #536175; font-size: 10px; }
 .equipment-track { height: 5px; overflow: hidden; border-radius: 10px; background: #edf0f4; }
@@ -435,7 +436,6 @@ button.visual-item:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rg
 .visual-item.canceled { color: #805300; border-color: #d9b64f; background: #fff0b8; }
 .visual-item.progress { color: #174f85; border-color: #78acd8; background: #d9ebfa; }
 .visual-item.pending { color: #616c7c; border-color: #c8ced7; background: #f4f6f8; }
-.visual-item.unavailable { opacity: .45; }
 
 @media (max-width: 1100px) {
   .app-shell { grid-template-columns: 200px minmax(0, 1fr); }
